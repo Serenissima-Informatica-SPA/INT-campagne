@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#19365f">
+  <meta name="description" content="Dashboard operativa Campagna RT 2027">
+  <title>Campagna RT 2027 | Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="side-rail" aria-label="Navigazione principale">
+      <a class="brand" href="#panoramica" aria-label="Campagna RT 2027 home"><span class="brand-mark">SI</span><span class="brand-name">SERENISSIMA<small>INFORMATICA</small></span></a>
+      <div class="rail-caption">CAMPAGNA</div>
+      <nav class="rail-nav">
+        <button class="nav-item active" data-page="panoramica"><span class="nav-icon">◫</span><span>Executive overview</span></button>
+        <button class="nav-item" data-page="atteso"><span class="nav-icon">↗</span><span>Atteso vs acquisito</span></button>
+        <button class="nav-item" data-page="avanzamento"><span class="nav-icon">◎</span><span>Avanzamento commerciale</span></button>
+        <button class="nav-item" data-page="priorita"><span class="nav-icon">☷</span><span>Priorità e attività</span></button>
+      </nav>
+      <div class="rail-bottom"><div class="model-dot"></div><span>3 tabelle collegate</span><button id="model-open" class="model-link">Modello dati</button></div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="top-brand"><span>CAMPAGNA RT 2027</span><span class="slash">/</span><span>POWER BI</span></div>
+        <div class="top-actions"><span class="update-note"><i></i><span id="source-label">Anteprima dati</span></span><button class="outline-button" id="connect-open"><span class="plug">⌁</span> Connessione dati</button><button class="avatar" aria-label="Profilo">GL</button></div>
+      </header>
+
+      <section class="page-heading">
+        <div class="heading-title"><span class="section-number" id="section-number">01</span><div><h1 id="page-title">Executive overview</h1><p id="page-subtitle">La fotografia della campagna: target, conversione e valore.</p></div></div>
+        <div class="filter-area"><span class="filter-label">PERIMETRO</span><div class="filter-pills" id="perimeter-filters" role="group" aria-label="Filtra per perimetro"></div></div>
+      </section>
+
+      <div class="demo-notice" id="demo-notice"><span class="notice-icon">i</span><span>Anteprima dimostrativa. Collega il modello Power BI per visualizzare i dati aggiornati.</span><button id="notice-connect">Configura</button></div>
+
+      <section id="page-panoramica" class="page-view active" aria-label="Executive overview">
+        <div class="overview-grid">
+          <article class="panel funnel-panel"><div class="panel-heading"><div><h2 id="funnel-title">Funnel apparati</h2><p>Distribuzione delle opportunità</p></div><div class="segmented" role="tablist" aria-label="Tipo di funnel"><button class="segment active" data-funnel="apparati">Apparati</button><button class="segment" data-funnel="clienti">Clienti</button></div></div><div class="funnel-wrap" id="funnel-chart"></div></article>
+          <article class="panel progress-panel"><div class="panel-heading"><div><h2>Avanzamento per perimetro</h2><p>Clienti acquisiti sul target</p></div><span class="mini-mark">RT</span></div><div id="perimeter-chart" class="perimeter-chart"></div><div class="conversion"><div><span class="eyebrow">CONVERSIONE APPARATI</span><strong id="conversion-value">—</strong></div><div class="donut" id="conversion-donut"><span id="target-value">TARGET<br><b>100%</b></span></div></div></article>
+          <article class="panel table-panel"><div class="panel-heading"><div><h2>Clienti target: proposte</h2><p>Valore per cliente</p></div><button class="more-button" id="table-more" aria-label="Mostra tutti i clienti">···</button></div><div class="table-tools"><label class="search-box"><span>⌕</span><input id="client-search" type="search" placeholder="Cerca cliente" aria-label="Cerca cliente"></label><span id="row-count" class="row-count"></span></div><div class="table-scroll"><table><thead><tr><th>Cliente</th><th>N. RT</th><th>HW</th><th>Fee</th><th>Totale</th></tr></thead><tbody id="client-rows"></tbody><tfoot id="client-total"></tfoot></table></div><p class="table-footnote">Valori in € · esempio dimostrativo</p></article>
+        </div>
+        <div class="kpi-strip" id="kpi-strip"></div>
+        <div class="page-foot"><span>PERIMETRO: <b>RISTORAZIONE · RETAIL TRIESTE · HOSPITALITY · THE SPECIAL FOUR</b></span><span>Esclusi dal modello: Bergamo e GDO</span></div>
+      </section>
+
+      <section id="page-atteso" class="page-view" aria-label="Atteso vs acquisito">
+        <div class="metric-band" id="atteso-metrics"></div>
+        <div class="analysis-grid"><article class="panel comparison-panel"><div class="panel-heading"><div><h2>Acquisito e ancora da acquisire</h2><p>Confronto economico della campagna</p></div><span class="unit-tag">EURO</span></div><div id="comparison-chart" class="comparison-chart"></div></article><article class="panel gap-panel"><div class="panel-heading"><div><h2>Gap verso il target</h2><p>Avanzamento sull’atteso</p></div></div><div id="gap-list" class="gap-list"></div></article></div>
+        <p class="method-note">Valori dimostrativi. Atteso complessivo da baseline campagna; le stime HW e servizi seguono la ripartizione indicata nel modello.</p>
+      </section>
+
+      <section id="page-avanzamento" class="page-view" aria-label="Avanzamento commerciale">
+        <div class="pipeline-kpis" id="pipeline-kpis"></div>
+        <div class="analysis-grid pipeline-grid"><article class="panel pipeline-panel"><div class="panel-heading"><div><h2>Clienti per fase</h2><p>Avanzamento della pipeline commerciale</p></div><div class="legend"><span><i class="legend-blue"></i>Clienti</span><span><i class="legend-pale"></i>Apparati</span></div></div><div id="pipeline-chart" class="pipeline-chart"></div></article><article class="panel pipeline-detail"><div class="panel-heading"><div><h2>Dettaglio operativo</h2><p>Prossime attività per cliente</p></div><button class="more-button">···</button></div><div id="pipeline-table" class="mini-table"></div></article></div>
+      </section>
+
+      <section id="page-priorita" class="page-view" aria-label="Priorità e attività">
+        <div class="priority-kpis" id="priority-kpis"></div>
+        <div class="analysis-grid priority-grid"><article class="panel worklist-panel"><div class="panel-heading"><div><h2>Worklist prioritaria</h2><p>Clienti ordinati per urgenza commerciale</p></div><label class="select-wrap"><span>Categoria</span><select id="priority-filter"><option value="tutte">Tutte</option><option value="scadute">Scadute</option><option value="fredde">Fredde</option><option value="sollecito">Da sollecitare</option><option value="calde">Calde</option></select></label></div><div class="worklist-scroll"><table class="worklist-table"><thead><tr><th>Priorità</th><th>Cliente</th><th>App.</th><th>Stato</th><th>Fermi</th><th>Prossima azione</th><th>Owner</th></tr></thead><tbody id="worklist-rows"></tbody></table></div></article><article class="panel rules-panel"><div class="panel-heading"><div><h2>Regole di priorità</h2><p>Classificazione dalla worklist</p></div></div><div id="priority-rules"></div></article></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="connect-dialog" class="dialog"><form method="dialog"><button class="dialog-close" aria-label="Chiudi">×</button><span class="dialog-kicker">CONNESSIONE POWER BI</span><h2>Collega il modello dati</h2><p>L’app interroga il semantic model Power BI dopo l’accesso Microsoft. Ogni persona usa i propri permessi Power BI. La configurazione non conserva password né segreti nel repository.</p><div class="model-sources"><div><b>Clienti_Unificati</b><span>Target, avanzamento e valori</span></div><div><b>Matricole_Unificate</b><span>Apparati e selezione</span></div><div><b>Offerte_Unificate</b><span>Pipeline, priorità e importi</span></div></div><p class="dialog-hint">L’accesso live richiede Client ID e Semantic Model ID configurati, il consenso Power BI Dataset.Read.All e i permessi di lettura/compilazione sul modello.</p><a class="dialog-link" href="https://app.powerbi.com/groups/fa82781e-0fb4-45b2-98ad-95ac8e000ef5/reports/19e410f8-4233-47cc-83b9-352d023cd134/0ea493020094161bbed0?experience=power-bi" target="_blank" rel="noreferrer">Apri il report in Power BI ↗</a><button id="connect-run" class="primary-button" type="button">Accedi e carica i dati</button></form></dialog>
+
+  <dialog id="model-dialog" class="dialog"><form method="dialog"><button class="dialog-close" aria-label="Chiudi">×</button><span class="dialog-kicker">MODELLO SEMANTICO</span><h2>Struttura del modello</h2><p>La web app usa la struttura dati Power BI. L’interfaccia e i grafici seguono il mockup PowerPoint.</p><div class="model-diagram"><div class="model-node main-node"><small>DIMENSIONE</small><b>Clienti_Unificati</b><span>57 colonne</span></div><div class="relation-lines"><i></i><i></i><span>1 : *</span><span>1 : *</span></div><div class="model-node"><small>FATTO</small><b>Offerte_Unificate</b><span>31 colonne</span></div><div class="model-node"><small>FATTO</small><b>Matricole_Unificate</b><span>13 colonne</span></div></div><div class="model-measures"><span>16 misure</span><span>2 relazioni molti-a-uno</span><span>4 perimetri di campagna</span></div><p class="dialog-hint">Campi metrici rilevati includono StimaHardwareEUR, StimaServiziEUR, CostoHardwareEUR, MargineStimaHardwareEUR e MargineTotaleStima.</p><button class="primary-button dialog-done">Chiudi</button></form></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="powerbi-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

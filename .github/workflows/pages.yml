@@ -1,0 +1,55 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    outputs:
+      powerbi_configured: ${{ steps.check-config.outputs.configured }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build Power BI connector
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Check Power BI configuration
+        id: check-config
+        run: |
+          node -e 'const fs=require("fs"); const s=fs.readFileSync("dist/powerbi-config.js","utf8"); const ok=/clientId:\s*"[^"]+"/.test(s)&&/datasetId:\s*"[^"]+"/.test(s); console.log(`configured=${ok}`)' >> "$GITHUB_OUTPUT"
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    if: needs.build.outputs.powerbi_configured == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

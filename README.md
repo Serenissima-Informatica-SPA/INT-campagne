@@ -18,7 +18,7 @@ Il frontend usa MSAL Browser con OAuth Authorization Code + PKCE e richiede un t
 Prima di attivare i dati live:
 
 1. In `dist/powerbi-config.js`, valorizzare `clientId` con il Client ID di un’app Microsoft Entra registrata come Single-page application e `datasetId` con il Semantic Model ID pubblicato. Il `workspaceId` è già impostato sul workspace del report.
-2. Registrare come Redirect URI SPA l’URL GitHub Pages della repo, ad esempio `https://serenissima-informatica-spa.github.io/INT-campagne/`.
+2. Registrare come Redirect URI SPA l’URL GitHub Pages della repo, ad esempio `https://serenissima-informatica-spa.github.io/INT-campagne/redirect.html`.
 3. Aggiungere all’app Entra il permesso delegato Power BI `Dataset.Read.All` e ottenere il consenso richiesto dall’organizzazione.
 4. Abilitare nel tenant Power BI l’impostazione `Dataset Execute Queries REST API`; chi accede deve avere permesso Read e Build sul semantic model.
 5. Dopo il deploy, aprire la dashboard e premere **Accedi e carica i dati**. Ogni utente accede con il proprio account Microsoft.

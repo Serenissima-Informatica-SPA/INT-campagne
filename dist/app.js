@@ -146,10 +146,11 @@ qs("#table-more").addEventListener("click",()=>{state.showAll=!state.showAll;ren
 qs("#priority-filter").addEventListener("change",e=>{state.priority=e.target.value;renderPriorities()});
 qs("#connect-open").addEventListener("click",connectDialog);qs("#notice-connect").addEventListener("click",connectDialog);qs("#model-open").addEventListener("click",()=>qs("#model-dialog").showModal());
 qs("#connect-run").addEventListener("click",async()=>{
-  const button=qs("#connect-run");
+  const button=qs("#connect-run"), errorBox=qs("#connect-error");
+  errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
   try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
-  catch(error){ showToast(error.message||"Connessione Power BI non riuscita"); }
+  catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });
 qsa(".dialog-close").forEach(b=>b.addEventListener("click",()=>b.closest("dialog").close()));

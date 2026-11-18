@@ -44,7 +44,6 @@ jobs:
           path: dist
 
   deploy:
-    if: needs.build.outputs.powerbi_configured == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

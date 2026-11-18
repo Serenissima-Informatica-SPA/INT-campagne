@@ -149,7 +149,7 @@ qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=msal-redirect-bridge-20261118"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

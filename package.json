@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Dashboard Campagna RT 2027 collegata al modello semantico Power BI",
   "scripts": {
-    "build": "esbuild src/powerbi.js --bundle --format=iife --target=es2022 --outfile=dist/powerbi.bundle.js"
+    "build": "esbuild src/powerbi.js --bundle --format=iife --target=es2022 --outfile=dist/powerbi.bundle.js && esbuild src/redirect.js --bundle --format=iife --target=es2022 --outfile=dist/redirect.bundle.js"
   },
   "dependencies": {
     "@azure/msal-browser": "5.29.0"

@@ -1,0 +1,59 @@
+{
+  "model": "Campagna RT2027 Unificata",
+  "source": "Power BI semantic model",
+  "tables": [
+    {
+      "name": "Clienti_Unificati",
+      "role": "dimension",
+      "columnCount": 57,
+      "purpose": "Clienti, perimetro, target, valori stimati e acquisiti",
+      "observedFields": [
+        "Perimetro", "Cliente", "ClientiTarget", "ClientiVinti", "ClientiConOfferta",
+        "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso",
+        "OfferteVinte", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR",
+        "StimaHardwareEUR", "StimaServiziEUR", "CostoHardwareEUR",
+        "MargineStimaHardwareEUR", "MargineTotaleStima", "MargineHardwareVinteEUR",
+        "MargineServiziStimaEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"
+      ]
+    },
+    {
+      "name": "Offerte_Unificate",
+      "role": "fact",
+      "columnCount": 31,
+      "purpose": "Ricavi, costi, margini e stato delle offerte",
+      "observedFields": [
+        "Cliente", "Agente", "StatoOfferta", "Categoria", "GiorniDaCreazione",
+        "QuantitaHardware",
+        "StimaHardwareEUR",
+        "StimaServiziEUR",
+        "CostoHardwareEUR",
+        "MargineStimaHardwareEUR",
+        "MargineTotaleStima"
+      ]
+    },
+    {
+      "name": "Matricole_Unificate",
+      "role": "fact",
+      "columnCount": 13,
+      "purpose": "Apparati e conversione"
+    }
+  ],
+  "relationships": [
+    { "from": "Offerte_Unificate", "to": "Clienti_Unificati", "cardinality": "many-to-one" },
+    { "from": "Matricole_Unificate", "to": "Clienti_Unificati", "cardinality": "many-to-one" }
+  ],
+  "measureCount": 16,
+  "measures": [
+    "ClientiAvanzamento", "AvanzRicTotale", "AvanzRicHW", "AvanzRicServizi",
+    "AvanzMargHW", "AvanzMargServizi", "AvanzMargTotale", "MancRicTotale",
+    "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi",
+    "MancMargTotale", "OffInProgress", "OffWon", "OffLost"
+  ],
+  "perimeters": ["Ristorazione", "Retail Trieste", "Hospitality", "The Special Four"],
+  "excludedPerimeters": ["Bergamo", "GDO"],
+  "liveConnection": {
+    "status": "not-configured",
+    "required": "Microsoft Entra SPA Client ID, published Semantic Model ID, delegated Dataset.Read.All consent, tenant Execute Queries setting, and dataset Read + Build permissions"
+  }
+}
+

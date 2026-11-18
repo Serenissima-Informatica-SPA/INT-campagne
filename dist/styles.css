@@ -4,3 +4,104 @@
 @media(max-width:430px){.top-brand{font-size:8px}.outline-button{font-size:0;padding:9px 11px}.plug{font-size:16px;margin:0}.avatar{width:30px;height:30px}.section-number{font-size:23px}.page-heading h1{font-size:21px}.panel{padding:16px}.panel-heading h2{font-size:13px}.segmented{padding:2px}.segment{padding:6px 7px;font-size:8px}.perimeter-row{grid-template-columns:81px 1fr 51px;gap:7px}.kpi-card{padding:10px}.kpi-value{font-size:16px}.kpi-strip{gap:8px}.metric-band{gap:8px}.metric-block{padding:13px}.small-stat{padding:12px}.small-stat strong{font-size:20px}.dialog form{padding:25px 21px}.model-diagram{gap:6px}}
 .status.red{background:#fdebea;color:#b74b45}
 
+
+
+/* Legibility pass: larger type, clearer charts and more room for data. */
+body{font-size:15px}
+.app-shell{grid-template-columns:250px minmax(0,1fr)}
+.main-area{padding:0 clamp(24px,2.8vw,46px) 32px}
+.nav-item{font-size:13px}
+.rail-caption,.filter-label,.eyebrow,.dialog-kicker{font-size:10px}
+.topbar{height:76px}
+.top-brand{font-size:11px}
+.update-note{font-size:11px}
+.outline-button{font-size:12px;padding:11px 15px}
+.page-heading{padding:36px 0 23px}
+.page-heading h1{font-size:32px}
+.page-heading p{font-size:14px}
+.filter-pill{font-size:12px;padding:10px 15px}
+.demo-notice{font-size:13px;min-height:44px;padding:10px 14px;margin-bottom:22px}
+.demo-notice button{font-size:12px}
+.overview-grid,.analysis-grid{gap:20px}
+.overview-grid>.panel{min-height:435px}
+.panel{padding:23px 24px}
+.panel-heading{margin-bottom:20px}
+.panel-heading h2{font-size:16px}
+.panel-heading p{font-size:12px}
+.segment{font-size:11px;padding:7px 12px}
+.funnel-wrap{height:322px;gap:9px}
+.funnel-step{font-size:13px}
+.funnel-value{font-size:12px}
+.perimeter-chart{gap:17px;margin-top:24px}
+.perimeter-row{grid-template-columns:minmax(95px,1fr) minmax(90px,1.45fr) 66px;gap:12px}
+.perimeter-name{font-size:12px}
+.bar-track{height:29px}
+.bar-fill{font-size:11px}
+.perimeter-count{font-size:11px}
+.conversion strong{font-size:29px}
+.donut{width:84px;height:84px}
+.donut span{font-size:9px}.donut b{font-size:12px}
+.search-box{width:175px;padding:6px 9px}.search-box input{font-size:11px}
+.row-count{font-size:11px}
+.table-scroll{max-height:300px}
+table{font-size:12px}
+th{font-size:11px;padding:11px 9px}
+td{padding:10px 9px}
+.table-footnote{font-size:10px}
+.kpi-strip{grid-template-columns:repeat(4,minmax(145px,1fr));gap:12px}
+.kpi-card{padding:14px 15px 15px;min-height:100px}
+.kpi-label{font-size:10px;min-height:26px}
+.kpi-value{font-size:21px}
+.kpi-detail{font-size:10px}
+.page-foot{font-size:10px}
+.metric-band,.pipeline-kpis,.priority-kpis{gap:14px}
+.metric-block{padding:18px 20px}
+.metric-block span,.small-stat span{font-size:10px}
+.metric-block strong,.small-stat strong{font-size:25px}
+.metric-block small,.small-stat small{font-size:11px}
+.compare-label,.compare-values,.gap-row span,.gap-row strong,.pipe-label,.pipe-count{font-size:12px}
+.compare-legend,.legend{font-size:11px}
+.pipe-row{grid-template-columns:118px 1fr 54px}
+.pipe-track{height:28px}.pipe-fill{font-size:11px}
+.mini-row span{font-size:11px}.mini-row.header{font-size:9px}
+.status{font-size:9px;padding:5px 8px}
+.rule b{font-size:12px}.rule span{font-size:11px}
+@media(max-width:1250px){.overview-grid>.panel{min-height:405px}.kpi-strip{grid-template-columns:repeat(4,minmax(130px,1fr))}}
+@media(max-width:850px){
+  body{font-size:15px}
+  .main-area{padding:0 18px 28px}
+  .topbar{height:62px}
+  .page-heading{padding:27px 0 19px}
+  .page-heading h1{font-size:28px}
+  .page-heading p{font-size:14px}
+  .filter-pill{font-size:12px;padding:9px 13px}
+  .nav-item{font-size:11px;padding:10px 11px}
+  .demo-notice{font-size:12px;line-height:1.45;min-height:48px;margin-bottom:18px}
+  .panel{padding:20px}
+  .panel-heading h2{font-size:16px}.panel-heading p{font-size:12px}
+  .funnel-panel,.progress-panel{min-height:390px!important}
+  .funnel-wrap{height:310px}
+  .funnel-step{font-size:13px}.funnel-value{font-size:12px}
+  .perimeter-name{font-size:12px}.bar-track{height:28px}.bar-fill{font-size:11px}.perimeter-count{font-size:11px}
+  .conversion strong{font-size:28px}
+  .table-panel{min-height:390px!important}.table-scroll{max-height:280px}
+  table{font-size:12px}th{font-size:11px}td{padding:10px 8px}
+  .kpi-card{min-height:98px}.kpi-label{font-size:10px}.kpi-value{font-size:20px}.kpi-detail{font-size:10px}
+  .metric-block span,.small-stat span{font-size:10px}.metric-block strong,.small-stat strong{font-size:23px}
+  .compare-label,.compare-values,.pipe-label,.pipe-count{font-size:11px}
+  .mini-row span{font-size:10px}.rule b{font-size:12px}.rule span{font-size:11px}
+}
+@media(max-width:430px){
+  .main-area{padding:0 14px 24px}
+  .page-heading h1{font-size:25px}
+  .heading-title{gap:11px}
+  .section-number{font-size:23px}
+  .panel{padding:17px}
+  .panel-heading h2{font-size:15px}
+  .kpi-strip{gap:9px}.kpi-card{padding:12px;min-height:94px}
+  .kpi-value{font-size:18px}
+  .perimeter-row{grid-template-columns:84px minmax(75px,1fr) 52px;gap:8px}
+  .search-box{width:155px}
+  .compare-row{grid-template-columns:83px 1fr 60px}
+  .mini-row{grid-template-columns:1.15fr .6fr 1fr .9fr;gap:5px}
+}

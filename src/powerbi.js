@@ -211,6 +211,43 @@ function categoryKey(value) {
 }
 const categoryLabels = { scadute: "SCADUTA", fredde: "FREDDA >20 GG", sollecito: "DA SOLLECITARE", calde: "CALDA <10 GG", altre: "IN CORSO" };
 const recommendedAction = { scadute: "Verifica scadenza", fredde: "Ricontatto cliente", sollecito: "Sollecito offerta", calde: "Avanzare ordine", altre: "Verifica stato" };
+const sameOverviewView = (a, b) => String(a ?? "").trim().toLocaleLowerCase("it-IT") === String(b ?? "").trim().toLocaleLowerCase("it-IT");
+
+function overviewProgressFromClients(rows) {
+  const groups = new Map();
+  const add = (view, category, row) => {
+    if (!view || !category) return;
+    const key = `${view}|${category}`;
+    if (!groups.has(key)) groups.set(key, { view, category, won: 0, target: 0 });
+    const group = groups.get(key);
+    group.won += num(row, "ClientiVinti");
+    group.target += num(row, "ClientiTarget");
+  };
+  for (const row of rows) {
+    const perimeter = label(row, "Perimetro");
+    if (!perimeter || isExcluded(perimeter)) continue;
+    add("Totale", perimeter, row);
+    add(perimeter, label(row, "AP"), row);
+  }
+  return [...groups.values()].map(row => ({ view: row.view, category: row.category, progress: row.target ? row.won / row.target : 0 }));
+}
+
+function buildPriorityDistribution(rows) {
+  const groups = new Map();
+  for (const row of rows) {
+    if (row.priorityEta.trim().toLowerCase() === "confermata") continue;
+    const category = row.category || "Categoria vuota";
+    groups.set(category, (groups.get(category) || 0) + row.count);
+  }
+  const order = ["Scaduta", "Fredda >20gg", "Da Sollecitare", "Calda <10gg", "Categoria vuota"];
+  return [...groups.entries()]
+    .map(([category, count]) => ({ category, count, type: categoryKey(category) }))
+    .sort((a, b) => {
+      const ai = order.findIndex(value => value.toLowerCase() === a.category.toLowerCase());
+      const bi = order.findIndex(value => value.toLowerCase() === b.category.toLowerCase());
+      return (ai < 0 ? order.length : ai) - (bi < 0 ? order.length : bi) || a.category.localeCompare(b.category, "it");
+    });
+}
 
 function aggregateDynamicRows(matrixRows, comparisonRows) {
   const byPerimeter = new Map();

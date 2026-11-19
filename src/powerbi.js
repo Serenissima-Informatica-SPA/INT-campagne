@@ -383,7 +383,6 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     if (!target.axes.some(item => item.perimeter === axis.perimeter && item.ap === axis.ap)) target.axes.push(axis);
   }
   const clientTable = [...clientTableMap.values()].map(row => ({ ...row, key: row.keys.size === 1 ? [...row.keys][0] : "" }))
-    .filter(row => row.count > 0 || row.hw > 0 || row.fee > 0 || row.total > 0)
     .sort((a, b) => b.total - a.total);
   const contactedClients = new Set(workRows.map(accountKey).filter(Boolean)).size;
   const negotiationCount = sum(offerRows.filter(row => /negozia|negotiat/i.test(label(row, "StatoOfferta"))), "ConteggioOfferte");

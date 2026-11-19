@@ -50,8 +50,23 @@
 
       <section id="page-atteso" class="page-view" aria-label="Atteso vs acquisito">
         <div class="metric-band" id="atteso-metrics"></div>
-        <div class="analysis-grid"><article class="panel comparison-panel"><div class="panel-heading"><div><h2>Acquisito e ancora da acquisire</h2><p>Confronto economico della campagna</p></div><span class="unit-tag">EURO</span></div><div id="comparison-chart" class="comparison-chart"></div></article><article class="panel gap-panel"><div class="panel-heading"><div><h2>Gap verso il target</h2><p>Avanzamento sull’atteso</p></div></div><div id="gap-list" class="gap-list"></div></article></div>
-        <p class="method-note">Valori dimostrativi. Atteso complessivo da baseline campagna; le stime HW e servizi seguono la ripartizione indicata nel modello.</p>
+        <div class="expected-layout">
+          <article class="panel expected-table-panel">
+            <div class="panel-heading"><div><h2>Acquisito vs atteso campagna</h2></div></div>
+            <div class="expected-table-scroll">
+              <table class="expected-table" aria-label="Confronto economico tra acquisito e atteso">
+                <thead><tr><th>Voce</th><th>Acquisito</th><th>Atteso</th><th>Avanz.</th><th>Manca</th></tr></thead>
+                <tbody id="expected-rows"></tbody>
+              </table>
+            </div>
+            <p class="expected-note" id="expected-note"></p>
+          </article>
+          <article class="panel expected-chart-panel">
+            <div class="panel-heading"><div><h2>Confronto in €k</h2></div></div>
+            <div id="expected-chart" class="expected-chart" role="img" aria-label="Grafico a colonne di acquisito e atteso per voce"></div>
+          </article>
+        </div>
+        <footer class="expected-footer"><span id="atteso-footer-status">Demo visuale con dati esemplificativi</span><span>7</span></footer>
       </section>
 
       <section id="page-avanzamento" class="page-view" aria-label="Avanzamento commerciale">

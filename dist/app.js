@@ -138,13 +138,14 @@ function expectedRowsForSelection(){
   const sum=key=>selected.reduce((total,row)=>total+(Number(row[key])||0),0);
   const expectedHardware=sum("expectedHardware"),acquiredHardware=sum("acquiredHardware");
   const expectedServices=sum("expectedServices"),acquiredServices=sum("acquiredServices");
+  const missing=(key,acquired,expected)=>data.mode==="live"?sum(key):Math.max(0,expected-acquired);
   return [
-    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:acquiredHardware+acquiredServices},
-    {label:expectedLabels[1],expected:expectedHardware,acquired:acquiredHardware},
-    {label:expectedLabels[2],expected:expectedServices,acquired:acquiredServices},
-    {label:expectedLabels[3],expected:sum("expectedHardwareMargin"),acquired:sum("acquiredHardwareMargin")},
-    {label:expectedLabels[4],expected:sum("expectedServicesMargin"),acquired:sum("acquiredServicesMargin")},
-    {label:expectedLabels[5],expected:sum("expectedMargin"),acquired:sum("acquiredMargin")}
+    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:acquiredHardware+acquiredServices,missing:missing("missingRevenue",acquiredHardware+acquiredServices,expectedHardware+expectedServices)},
+    {label:expectedLabels[1],expected:expectedHardware,acquired:acquiredHardware,missing:missing("missingHardwareRevenue",acquiredHardware,expectedHardware)},
+    {label:expectedLabels[2],expected:expectedServices,acquired:acquiredServices,missing:missing("missingServicesRevenue",acquiredServices,expectedServices)},
+    {label:expectedLabels[3],expected:sum("expectedHardwareMargin"),acquired:sum("acquiredHardwareMargin"),missing:missing("missingHardwareMargin",sum("acquiredHardwareMargin"),sum("expectedHardwareMargin"))},
+    {label:expectedLabels[4],expected:sum("expectedServicesMargin"),acquired:sum("acquiredServicesMargin"),missing:missing("missingServicesMargin",sum("acquiredServicesMargin"),sum("expectedServicesMargin"))},
+    {label:expectedLabels[5],expected:sum("expectedMargin"),acquired:sum("acquiredMargin"),missing:missing("missingMargin",sum("acquiredMargin"),sum("expectedMargin"))}
   ];
 }
 function renderExpected(){
@@ -155,14 +156,14 @@ function renderExpected(){
   const top=[
     {label:"Ricavi attesi",value:revenue.expected,detail:"baseline campagna",color:"#19365f"},
     {label:"Ricavi acquisiti",value:revenue.acquired,detail:`${revenuePct.toFixed(1).replace(".",",")}% dell’atteso`,color:"#2774c8"},
-    {label:"Ricavi mancanti",value:Math.max(0,revenue.expected-revenue.acquired),detail:`${Math.max(0,100-revenuePct).toFixed(1).replace(".",",")}% da acquisire`,color:"#f28a27"},
+    {label:"Ricavi mancanti",value:Math.max(0,revenue.missing??(revenue.expected-revenue.acquired)),detail:`${Math.max(0,100-revenuePct).toFixed(1).replace(".",",")}% da acquisire`,color:"#f28a27"},
     {label:"Margine acquisito",value:margin.acquired,detail:`${marginPct.toFixed(1).replace(".",",")}% dell’atteso`,color:"#2da38f"},
-    {label:"Margine mancante",value:Math.max(0,margin.expected-margin.acquired),detail:`${Math.max(0,100-marginPct).toFixed(1).replace(".",",")}% da acquisire`,color:"#7954da"}
+    {label:"Margine mancante",value:Math.max(0,margin.missing??(margin.expected-margin.acquired)),detail:`${Math.max(0,100-marginPct).toFixed(1).replace(".",",")}% da acquisire`,color:"#7954da"}
   ];
   qs("#atteso-metrics").innerHTML=top.map(item=>`<div class="metric-block" style="--accent:${item.color}"><span>${item.label.toUpperCase()}</span><strong>${expectedKpiAmount(item.value)}</strong><small>${item.detail}</small></div>`).join("");
   qs("#expected-rows").innerHTML=rows.map((row,index)=>{
     const progress=row.expected?row.acquired/row.expected*100:0;
-    const missing=Math.max(0,row.expected-row.acquired);
+    const missing=Math.max(0,row.missing??(row.expected-row.acquired));
     const totalClass=index===0||index===rows.length-1?' class="expected-total"':"";
     return `<tr${totalClass}><td>${escapeHtml(row.label)}</td><td>${euroInThousands(row.acquired)}</td><td>${euroInThousands(row.expected)}</td><td>${progress.toFixed(1).replace(".",",")}%</td><td>${missing?euroInThousands(missing):"—"}</td></tr>`;
   }).join("");

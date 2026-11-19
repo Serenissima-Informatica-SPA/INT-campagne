@@ -328,6 +328,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
   const statusRows = key => offerRows.filter(row => label(row, "StatoOfferta").toLowerCase() === key.toLowerCase());
   const statusCount = key => sum(statusRows(key), "ConteggioOfferte");
   const statusUnits = key => sum(statusRows(key), "QuantitaHardware");
+  const clientLost = new Set(statusRows("Lost").map(accountKey).filter(Boolean)).size;
   const hotOffers = offerRows.filter(row => /^creata da 0-10 giorni$/i.test(label(row, "PrioritaEta")));
   const funnel = [
     { label: "Target", apparati: totals.AttesoPezzi, clienti: totals.ClientiTarget, color: "#19365f" },

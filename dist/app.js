@@ -82,6 +82,8 @@ const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&
 const money = n => new Intl.NumberFormat("it-IT", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n);
 const compact = n => n === 0 ? "€0" : n < 1000 ? money(n) : n >= 1_000_000 ? `€${(n/1_000_000).toLocaleString("it-IT",{maximumFractionDigits:2})}M` : `€${(n/1_000).toLocaleString("it-IT",{maximumFractionDigits:0})}k`;
 const number = n => new Intl.NumberFormat("it-IT").format(n);
+const modelPerimeter = value => /^the special four$/i.test(String(value??"").trim())?"T4":String(value??"").trim();
+const displayPerimeter = value => /^t4$/i.test(String(value??"").trim())?"The Special Four":String(value??"").trim();
 
 function currentPerimeter(){return state.page==="panoramica"?state.overviewPerimeter:state.perimeter}
 function renderFilters(){
@@ -261,7 +263,7 @@ function renderPriorities(){
   qs("#owner-filter").innerHTML=`<option value="">Tutti gli owner</option>`+owners.map(owner=>`<option value="${escapeHtml(owner)}">${escapeHtml(owner)}</option>`).join("");
   qs("#owner-filter").value=state.priorityOwner;
   const ownerMatches=owner=>!state.priorityOwner||String(owner||"").trim().toLocaleLowerCase("it-IT")===state.priorityOwner.trim().toLocaleLowerCase("it-IT");
-  const details=(data.priorityDetails||[]).filter(row=>row.priorityEta.trim().toLowerCase()!=="confermata"&&ownerMatches(row.owner));
+  const details=(data.priorityDetails||[]).filter(row=>String(row.priorityEta||"").trim().toLowerCase()!=="confermata"&&ownerMatches(row.owner));
   const sumEta=pattern=>details.filter(row=>pattern.test(row.priorityEta)).reduce((total,row)=>total+(Number(row.count)||0),0);
   const stats=data.mode==="live"?[
     {key:"scadute",label:"OFFERTE SCADUTE",value:sumEta(/^(creata da >30 giorni|scaduta)$/i),color:palette.scadute},
@@ -281,9 +283,10 @@ function renderPriorities(){
     distribution.set(category,(distribution.get(category)||0)+(Number(row.count)||0));
   }
   const categoryOrder=["Scaduta","Fredda >20gg","Da Sollecitare","Calda <10gg","Categoria vuota"];
-  const bars=[...distribution.entries()].map(([category,value])=>({category,value,type:categoryKey(category)}))
+  let bars=[...distribution.entries()].map(([category,value])=>({category,value,type:categoryKey(category)}))
     .sort((a,b)=>{const ai=categoryOrder.findIndex(x=>x.toLowerCase()===a.category.toLowerCase()),bi=categoryOrder.findIndex(x=>x.toLowerCase()===b.category.toLowerCase());return (ai<0?categoryOrder.length:ai)-(bi<0?categoryOrder.length:bi)||a.category.localeCompare(b.category,"it")});
-  const list=(data.worklist||[]).filter(row=>row.priorityEta.toLowerCase()!=="confermata"&&ownerMatches(row.owner)).slice(0,8);
+  if(data.mode!=="live") bars=stats.map(item=>({category:item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg",value:item.value,type:item.key}));
+  const list=(data.worklist||[]).filter(row=>String(row.priorityEta||"").toLowerCase()!=="confermata"&&ownerMatches(row.owner)).slice(0,8);
   qs("#worklist-rows").innerHTML=list.map(row=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(row.accountKey||row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td><span class="priority-tag" style="--priority:${palette[row.type]||palette.altre}"><i></i>${escapeHtml(row.category||"—")}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.days||0)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("")||`<tr><td colspan="4">Nessuna offerta per i filtri selezionati</td></tr>`;
   const max=Math.max(1,...bars.map(item=>Number(item.value)||0));
   qs("#priority-chart").innerHTML=`<div class="priority-bars">${bars.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group" data-cross-kind="category" data-cross-value="${item.type}" title="Filtra per priorità" style="cursor:pointer"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${palette[item.type]||palette.altre}"></div></div><span class="priority-bar-label">${escapeHtml(item.category)}</span></div>`}).join("")}</div>`;

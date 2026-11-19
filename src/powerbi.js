@@ -22,13 +22,20 @@ SUMMARIZECOLUMNS(
   "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
   "ValoreHardwareVinteEUR", SUM('Clienti_Unificati'[ValoreHardwareVinteEUR]),
   "ValoreServiziVinteEUR", SUM('Clienti_Unificati'[ValoreServiziVinteEUR]),
+  "ValoreVinteEUR", SUM('Clienti_Unificati'[ValoreVinteEUR]),
   "CostoHardwareEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
   "MargineStimaHardwareEUR", SUM('Clienti_Unificati'[MargineStimaHardwareEUR]),
   "MargineServiziStimaEUR", SUM('Clienti_Unificati'[MargineServiziStimaEUR]),
   "MargineTotaleStima", SUM('Clienti_Unificati'[MargineTotaleStima]),
   "MargineHardwareVinteEUR", SUM('Clienti_Unificati'[MargineHardwareVinteEUR]),
   "MargineServiziVinteEUR", SUM('Clienti_Unificati'[MargineServiziVinteEUR]),
-  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR])
+  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR]),
+  "MancRicTotale", [MancRicTotale],
+  "MancRicHW", [MancRicHW],
+  "MancRicServizi", [MancRicServizi],
+  "MancMargHW", [MancMargHW],
+  "MancMargServizi", [MancMargServizi],
+  "MancMargTotale", [MancMargTotale]
 )`;
 
 const clientsDax = `
@@ -49,13 +56,20 @@ SUMMARIZECOLUMNS(
   "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
   "ValoreHardwareVinteEUR", SUM('Clienti_Unificati'[ValoreHardwareVinteEUR]),
   "ValoreServiziVinteEUR", SUM('Clienti_Unificati'[ValoreServiziVinteEUR]),
+  "ValoreVinteEUR", SUM('Clienti_Unificati'[ValoreVinteEUR]),
   "CostoHardwareEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
   "MargineStimaHardwareEUR", SUM('Clienti_Unificati'[MargineStimaHardwareEUR]),
   "MargineServiziStimaEUR", SUM('Clienti_Unificati'[MargineServiziStimaEUR]),
   "MargineTotaleStima", SUM('Clienti_Unificati'[MargineTotaleStima]),
   "MargineHardwareVinteEUR", SUM('Clienti_Unificati'[MargineHardwareVinteEUR]),
   "MargineServiziVinteEUR", SUM('Clienti_Unificati'[MargineServiziVinteEUR]),
-  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR])
+  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR]),
+  "MancRicTotale", [MancRicTotale],
+  "MancRicHW", [MancRicHW],
+  "MancRicServizi", [MancRicServizi],
+  "MancMargHW", [MancMargHW],
+  "MancMargServizi", [MancMargServizi],
+  "MancMargTotale", [MancMargTotale]
 )`;
 
 const offersSummaryDax = `
@@ -151,12 +165,14 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
   const perimeters = perimeterRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const clients = clientRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const totals = Object.fromEntries([
-    "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"
+    "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "ValoreVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR", "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"
   ].map(key => [key, sum(perimeters, key)]));
   const expectedRevenue = totals.StimaHardwareEUR + totals.StimaServiziEUR;
-  const acquiredRevenue = totals.ValoreHardwareVinteEUR + totals.ValoreServiziVinteEUR;
+  const acquiredRevenue = totals.ValoreVinteEUR;
+  const missingRevenue = totals.MancRicTotale;
   const acquiredMargin = totals.MargineTotaleVinteEUR;
   const expectedMargin = totals.MargineTotaleStima;
+  const missingMargin = totals.MancMargTotale;
   const ratio = (value, total) => total ? `${(value / total * 100).toFixed(1).replace(".", ",")}% del totale` : "—";
   const economics = [
     { key: "revenue", label: "Ricavo totale acquisito", value: acquiredRevenue, detail: ratio(acquiredRevenue, expectedRevenue), color: "#19365f" },
@@ -191,12 +207,12 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
     return { type: key, category: categoryLabels[key], client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
   }).filter(row => row.client).sort((a, b) => b.days - a.days);
   const expected = [
-    { label: "Ricavo totale", acquired: acquiredRevenue, expected: expectedRevenue },
-    { label: "Ricavo HW", acquired: totals.ValoreHardwareVinteEUR, expected: totals.StimaHardwareEUR },
-    { label: "Ricavo servizi (Fee)", acquired: totals.ValoreServiziVinteEUR, expected: totals.StimaServiziEUR },
-    { label: "Margine HW", acquired: totals.MargineHardwareVinteEUR, expected: totals.MargineStimaHardwareEUR },
-    { label: "Margine servizi", acquired: totals.MargineServiziVinteEUR, expected: totals.MargineServiziStimaEUR },
-    { label: "Margine totale", acquired: acquiredMargin, expected: expectedMargin }
+    { label: "Ricavo totale", acquired: acquiredRevenue, expected: expectedRevenue, missing: missingRevenue },
+    { label: "Ricavo HW", acquired: totals.ValoreHardwareVinteEUR, expected: totals.StimaHardwareEUR, missing: totals.MancRicHW },
+    { label: "Ricavo servizi (Fee)", acquired: totals.ValoreServiziVinteEUR, expected: totals.StimaServiziEUR, missing: totals.MancRicServizi },
+    { label: "Margine HW", acquired: totals.MargineHardwareVinteEUR, expected: totals.MargineStimaHardwareEUR, missing: totals.MancMargHW },
+    { label: "Margine servizi", acquired: totals.MargineServiziVinteEUR, expected: totals.MargineServiziStimaEUR, missing: totals.MancMargServizi },
+    { label: "Margine totale", acquired: acquiredMargin, expected: expectedMargin, missing: missingMargin }
   ];
   const clientTable = clients.map(row => ({ name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "StimaHardwareEUR"), fee: num(row, "StimaServiziEUR") })).sort((a, b) => (b.hw + b.fee) - (a.hw + a.fee));
   const contactedClients = new Set(workRows.map(row => label(row, "Cliente")).filter(Boolean)).size;
@@ -215,7 +231,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
   return {
     mode: "live",
     filterPerimeters: ["Totale", ...perimeters.map(row => label(row, "Perimetro"))],
-    totals: { expectedRevenue, acquiredRevenue, missingRevenue: expectedRevenue - acquiredRevenue, acquiredMargin, missingMargin: expectedMargin - acquiredMargin },
+    totals: { expectedRevenue, acquiredRevenue, missingRevenue, acquiredMargin, missingMargin },
     economics,
     funnel,
     perimeters: perimeters.map((row, index) => ({ name: label(row, "Perimetro"), completed: num(row, "ClientiVinti"), target: num(row, "ClientiTarget"), color: colors[index % colors.length] })),
@@ -230,7 +246,13 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
       expectedServicesMargin: num(row, "MargineServiziStimaEUR"),
       acquiredServicesMargin: num(row, "MargineServiziVinteEUR"),
       expectedMargin: num(row, "MargineTotaleStima"),
-      acquiredMargin: num(row, "MargineTotaleVinteEUR")
+      acquiredMargin: num(row, "MargineTotaleVinteEUR"),
+      missingRevenue: num(row, "MancRicTotale"),
+      missingHardwareRevenue: num(row, "MancRicHW"),
+      missingServicesRevenue: num(row, "MancRicServizi"),
+      missingHardwareMargin: num(row, "MancMargHW"),
+      missingServicesMargin: num(row, "MancMargServizi"),
+      missingMargin: num(row, "MancMargTotale")
     })),
     wonClients: totals.ClientiVinti,
     commercialMetrics,
@@ -244,7 +266,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
   };
 }
 
-const metricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
+const metricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "ValoreVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR", "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"];
 
 function filterDashboard(base, selection = {}) {
   if (!base?.raw) return base;

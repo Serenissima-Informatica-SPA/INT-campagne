@@ -179,6 +179,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
   const acquiredMargin = totals.MargineTotaleVinteEUR;
   const expectedMargin = totals.MargineTotaleStima;
   const missingMargin = totals.MancMargTotale;
+  const progressRow = perimeters.length === 1 ? perimeters[0] : null;
   const progress = (row, measure, acquired, expected) => {
     const value = field(row, measure);
     if (value == null || value === "") return expected ? acquired / expected * 100 : 0;
@@ -219,12 +220,12 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
     return { type: key, category: categoryLabels[key], client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
   }).filter(row => row.client).sort((a, b) => b.days - a.days);
   const expected = [
-    { label: "Ricavo totale", acquired: acquiredRevenue, expected: expectedRevenue, missing: missingRevenue, progress: progress(perimeters[0], "AvanzRicTotale", acquiredRevenue, expectedRevenue) },
-    { label: "Ricavo HW", acquired: totals.ValoreHardwareVinteEUR, expected: totals.StimaHardwareEUR, missing: totals.MancRicHW, progress: progress(perimeters[0], "AvanzRicHW", totals.ValoreHardwareVinteEUR, totals.StimaHardwareEUR) },
-    { label: "Ricavo servizi (Fee)", acquired: totals.ValoreServiziVinteEUR, expected: totals.StimaServiziEUR, missing: totals.MancRicServizi, progress: progress(perimeters[0], "AvanzRicServizi", totals.ValoreServiziVinteEUR, totals.StimaServiziEUR) },
-    { label: "Margine HW", acquired: totals.MargineHardwareVinteEUR, expected: totals.MargineStimaHardwareEUR, missing: totals.MancMargHW, progress: progress(perimeters[0], "AvanzMargHW", totals.MargineHardwareVinteEUR, totals.MargineStimaHardwareEUR) },
-    { label: "Margine servizi", acquired: totals.MargineServiziVinteEUR, expected: totals.MargineServiziStimaEUR, missing: totals.MancMargServizi, progress: progress(perimeters[0], "AvanzMargServizi", totals.MargineServiziVinteEUR, totals.MargineServiziStimaEUR) },
-    { label: "Margine totale", acquired: acquiredMargin, expected: expectedMargin, missing: missingMargin, progress: progress(perimeters[0], "AvanzMargTotale", acquiredMargin, expectedMargin) }
+    { label: "Ricavo totale", acquired: acquiredRevenue, expected: expectedRevenue, missing: missingRevenue, progress: progress(progressRow, "AvanzRicTotale", acquiredRevenue, expectedRevenue) },
+    { label: "Ricavo HW", acquired: totals.ValoreHardwareVinteEUR, expected: totals.StimaHardwareEUR, missing: totals.MancRicHW, progress: progress(progressRow, "AvanzRicHW", totals.ValoreHardwareVinteEUR, totals.StimaHardwareEUR) },
+    { label: "Ricavo servizi (Fee)", acquired: totals.ValoreServiziVinteEUR, expected: totals.StimaServiziEUR, missing: totals.MancRicServizi, progress: progress(progressRow, "AvanzRicServizi", totals.ValoreServiziVinteEUR, totals.StimaServiziEUR) },
+    { label: "Margine HW", acquired: totals.MargineHardwareVinteEUR, expected: totals.MargineStimaHardwareEUR, missing: totals.MancMargHW, progress: progress(progressRow, "AvanzMargHW", totals.MargineHardwareVinteEUR, totals.MargineStimaHardwareEUR) },
+    { label: "Margine servizi", acquired: totals.MargineServiziVinteEUR, expected: totals.MargineServiziStimaEUR, missing: totals.MancMargServizi, progress: progress(progressRow, "AvanzMargServizi", totals.MargineServiziVinteEUR, totals.MargineServiziStimaEUR) },
+    { label: "Margine totale", acquired: acquiredMargin, expected: expectedMargin, missing: missingMargin, progress: progress(progressRow, "AvanzMargTotale", acquiredMargin, expectedMargin) }
   ];
   const clientTable = clients.map(row => ({ name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "StimaHardwareEUR"), fee: num(row, "StimaServiziEUR") })).sort((a, b) => (b.hw + b.fee) - (a.hw + a.fee));
   const contactedClients = new Set(workRows.map(row => label(row, "Cliente")).filter(Boolean)).size;

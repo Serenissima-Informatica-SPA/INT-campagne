@@ -14,6 +14,9 @@ SUMMARIZECOLUMNS(
   "ClientiConOfferta", SUM('Clienti_Unificati'[ClientiConOfferta]),
   "RTCensite", SUM('Clienti_Unificati'[RTCensite]),
   "RTSelezionate", SUM('Clienti_Unificati'[RTSelezionate]),
+  "HW", SUM('Clienti_Unificati'[ValoreHardwareEUR]),
+  "Fee", SUM('Clienti_Unificati'[ValoreServiziEUR]),
+  "Totale", SUM('Clienti_Unificati'[ValoreOfferteEUR]),
   "RTDaVerificare", SUM('Clienti_Unificati'[RTDaVerificare]),
   "Offerte", SUM('Clienti_Unificati'[Offerte]),
   "OfferteInCorso", SUM('Clienti_Unificati'[OfferteInCorso]),
@@ -63,6 +66,9 @@ SUMMARIZECOLUMNS(
   "OfferteVinte", SUM('Clienti_Unificati'[OfferteVinte]),
   "StimaHardwareEUR", SUM('Clienti_Unificati'[StimaHardwareEUR]),
   "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
+  "HW", SUM('Clienti_Unificati'[ValoreHardwareEUR]),
+  "Fee", SUM('Clienti_Unificati'[ValoreServiziEUR]),
+  "Totale", SUM('Clienti_Unificati'[ValoreOfferteEUR]),
   "ValoreVinteEUR", [ValoreVinte],
   "ValoreHardwareVinteEUR", [ValoreHardwareVinte],
   "ValoreServiziVinteEUR", [ValoreServiziVinte],
@@ -290,7 +296,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     return { type: key, category: categoryLabels[key], accountKey: accountKey(row), client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
   }).filter(row => row.client).sort((a, b) => b.days - a.days);
   const expected = expectedSummary.expected;
-  const clientTable = clients.map(row => ({ key: accountKey(row), name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "StimaHardwareEUR"), fee: num(row, "StimaServiziEUR") })).sort((a, b) => (b.hw + b.fee) - (a.hw + a.fee));
+  const clientTable = clients.map(row => ({ key: accountKey(row), name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "HW"), fee: num(row, "Fee"), total: num(row, "Totale") })).filter(row => row.count > 0 || row.hw > 0 || row.fee > 0 || row.total > 0).sort((a, b) => b.total - a.total);
   const contactedClients = new Set(workRows.map(accountKey).filter(Boolean)).size;
   const negotiationCount = sum(offerRows.filter(row => /negozia|negotiat/i.test(label(row, "StatoOfferta"))), "ConteggioOfferte");
   const commercialMetrics = [
@@ -344,7 +350,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
   };
 }
 
-const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
+const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "HW", "Fee", "Totale", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
 const targetFields = ["AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale"];
 
 function filterDashboard(base, selection = {}) {

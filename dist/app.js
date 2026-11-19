@@ -80,7 +80,7 @@ const qs = (s, root=document) => root.querySelector(s);
 const qsa = (s, root=document) => [...root.querySelectorAll(s)];
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const money = n => new Intl.NumberFormat("it-IT", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n);
-const compact = n => n >= 1_000_000 ? `€${(n/1_000_000).toLocaleString("it-IT",{maximumFractionDigits:2})}M` : `€${(n/1_000).toLocaleString("it-IT",{maximumFractionDigits:0})}k`;
+const compact = n => n === 0 ? "€0" : n < 1000 ? money(n) : n >= 1_000_000 ? `€${(n/1_000_000).toLocaleString("it-IT",{maximumFractionDigits:2})}M` : `€${(n/1_000).toLocaleString("it-IT",{maximumFractionDigits:0})}k`;
 const number = n => new Intl.NumberFormat("it-IT").format(n);
 
 function renderFilters(){
@@ -303,7 +303,7 @@ qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=msal-redirect-bridge-20261118"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=live-cost-fix-20261119"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

@@ -28,6 +28,7 @@ SUMMARIZECOLUMNS(
   "ValoreHardwareVinteEUR", [ValoreHardwareVinte],
   "ValoreServiziVinteEUR", [ValoreServiziVinte],
   "CostoHardwareVinteEUR", [CostoHardwareVinteEUR],
+  "CostoHardwareColonnaEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
   "MargineHardwareVinteEUR", [MargineHardwareVinte],
   "MargineServiziVinteEUR", [MargineServiziVinte],
   "MargineTotaleVinteEUR", [MargineTotaleVinte],
@@ -66,6 +67,7 @@ SUMMARIZECOLUMNS(
   "ValoreHardwareVinteEUR", [ValoreHardwareVinte],
   "ValoreServiziVinteEUR", [ValoreServiziVinte],
   "CostoHardwareVinteEUR", [CostoHardwareVinteEUR],
+  "CostoHardwareColonnaEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
   "MargineHardwareVinteEUR", [MargineHardwareVinte],
   "MargineServiziVinteEUR", [MargineServiziVinte],
   "MargineTotaleVinteEUR", [MargineTotaleVinte]
@@ -244,7 +246,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
   const totals = Object.fromEntries([
     "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte",
     "AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale",
-    "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR",
+    "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR",
     "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"
   ].map(key => [key, sum(perimeters, key)]));
   const expectedSummary = aggregateDynamicRows(dynamicRows, comparisonRows);
@@ -342,7 +344,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
   };
 }
 
-const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
+const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
 const targetFields = ["AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale"];
 
 function filterDashboard(base, selection = {}) {

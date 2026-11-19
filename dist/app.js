@@ -214,6 +214,7 @@ function renderPipeline(){
   qs("#pipeline-table").innerHTML=`<div class="commercial-row commercial-header"><span>CLIENTE</span><span>OWNER</span><span>APP.</span><span>STATO</span><span>DATA</span><span>PROSSIMA AZIONE</span></div>`+details.slice(0,5).map(row=>`<div class="commercial-row"><span>${escapeHtml(row.client)}</span><span>${escapeHtml(row.owner)}</span><span>${number(row.apparatus||0)}</span><span>${escapeHtml(row.state)}</span><span>${escapeHtml(row.date||"—")}</span><span>${escapeHtml(row.action)}</span></div>`).join("");
   const insight=data.mode==="live"?"Dettaglio operativo estratto dalle offerte nel modello semantico.":"Insight: 48 clienti trattati rappresentano 190 apparati: il KPI clienti da solo sottostima il peso delle opportunità.";
   qs("#pipeline-insight").textContent=insight;
+  qs("#pipeline-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
 }
 function renderPriorities(){
   const palette={scadute:"#e95757",fredde:"#f3c04b",sollecito:"#32a1f8",calde:"#2ba38f"};
@@ -230,6 +231,7 @@ function renderPriorities(){
   qs("#priority-chart").innerHTML=`<div class="priority-bars">${stats.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${item.color}"></div></div><span class="priority-bar-label">${item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg"}</span></div>`}).join("")}</div>`;
   const overdue=stats.find(item=>item.key==="scadute")?.value||0;
   qs("#priority-alert").textContent=`${number(overdue)} offerte scadute richiedono un intervento immediato`;
+  qs("#priority-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
   const rules=[{name:"Rosso",desc:"Scadenza superata",color:palette.scadute},{name:"Giallo",desc:">20 giorni fermi",color:palette.fredde},{name:"Celeste",desc:">10 giorni, da sollecitare",color:palette.sollecito},{name:"Verde",desc:"<10 giorni",color:palette.calde}];
   qs("#priority-rules").innerHTML=`<b class="priority-rules-title">Regole semaforo</b>`+rules.map(rule=>`<div class="priority-rule" style="--priority:${rule.color}"><i></i><span><b>${rule.name}</b><small>${rule.desc}</small></span></div>`).join("");
 }

@@ -258,8 +258,19 @@ function filterDashboard(base, selection = {}) {
     work = work.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
   }
   if (selection.status) {
-    offers = offers.filter(row => same(label(row, "StatoOfferta"), selection.status));
-    work = work.filter(row => same(label(row, "StatoOfferta"), selection.status));
+    const stages = [
+      ["Da contattare", /da contattare|nuovo|new/i],
+      ["Contattato", /contattat/i],
+      ["Interesse", /interess/i],
+      ["Offerta", /offerta|quote/i],
+      ["Negoziazione", /negozia/i],
+      ["Confermato", /confermato|won|vinto/i],
+      ["Persi", /pers[oa]|lost/i]
+    ];
+    const stage = stages.find(([name]) => same(name, selection.status));
+    const matchesStatus = row => stage ? stage[1].test(label(row, "StatoOfferta")) : same(label(row, "StatoOfferta"), selection.status);
+    offers = offers.filter(matchesStatus);
+    work = work.filter(matchesStatus);
   }
   const allowedClients = new Set([...offers, ...work].map(row => label(row, "Cliente")).filter(Boolean));
   if (selection.client) {

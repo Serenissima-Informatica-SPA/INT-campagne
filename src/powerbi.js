@@ -36,14 +36,33 @@ EVALUATE
 SUMMARIZECOLUMNS(
   'Clienti_Unificati'[Perimetro],
   'Clienti_Unificati'[Cliente],
+  "ClientiTarget", SUM('Clienti_Unificati'[ClientiTarget]),
+  "ClientiVinti", SUM('Clienti_Unificati'[ClientiVinti]),
+  "ClientiConOfferta", SUM('Clienti_Unificati'[ClientiConOfferta]),
+  "RTCensite", SUM('Clienti_Unificati'[RTCensite]),
   "RTSelezionate", SUM('Clienti_Unificati'[RTSelezionate]),
+  "RTDaVerificare", SUM('Clienti_Unificati'[RTDaVerificare]),
+  "Offerte", SUM('Clienti_Unificati'[Offerte]),
+  "OfferteInCorso", SUM('Clienti_Unificati'[OfferteInCorso]),
+  "OfferteVinte", SUM('Clienti_Unificati'[OfferteVinte]),
   "StimaHardwareEUR", SUM('Clienti_Unificati'[StimaHardwareEUR]),
-  "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR])
+  "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
+  "ValoreHardwareVinteEUR", SUM('Clienti_Unificati'[ValoreHardwareVinteEUR]),
+  "ValoreServiziVinteEUR", SUM('Clienti_Unificati'[ValoreServiziVinteEUR]),
+  "CostoHardwareEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
+  "MargineStimaHardwareEUR", SUM('Clienti_Unificati'[MargineStimaHardwareEUR]),
+  "MargineServiziStimaEUR", SUM('Clienti_Unificati'[MargineServiziStimaEUR]),
+  "MargineTotaleStima", SUM('Clienti_Unificati'[MargineTotaleStima]),
+  "MargineHardwareVinteEUR", SUM('Clienti_Unificati'[MargineHardwareVinteEUR]),
+  "MargineServiziVinteEUR", SUM('Clienti_Unificati'[MargineServiziVinteEUR]),
+  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR])
 )`;
 
 const offersSummaryDax = `
 EVALUATE
 SUMMARIZECOLUMNS(
+  'Clienti_Unificati'[Perimetro],
+  'Offerte_Unificate'[Cliente],
   'Offerte_Unificate'[StatoOfferta],
   'Offerte_Unificate'[Categoria],
   "ConteggioOfferte", COUNT('Offerte_Unificate'[StatoOfferta]),
@@ -54,6 +73,7 @@ const worklistDax = `
 EVALUATE
 VAR Worklist =
   SUMMARIZECOLUMNS(
+    'Clienti_Unificati'[Perimetro],
     'Offerte_Unificate'[Cliente],
     'Offerte_Unificate'[StatoOfferta],
     'Offerte_Unificate'[Categoria],
@@ -219,8 +239,45 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
     expected,
     pipeline,
     worklist,
-    priorityCounts: { scadute: offerCount("scadute"), fredde: offerCount("fredde"), sollecito: offerCount("sollecito"), calde: offerCount("calde") }
+    priorityCounts: { scadute: offerCount("scadute"), fredde: offerCount("fredde"), sollecito: offerCount("sollecito"), calde: offerCount("calde") },
+    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows }
   };
+}
+
+const metricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
+
+function filterDashboard(base, selection = {}) {
+  if (!base?.raw) return base;
+  const same = (a, b) => String(a ?? "").trim().toLocaleLowerCase("it-IT") === String(b ?? "").trim().toLocaleLowerCase("it-IT");
+  const inPerimeter = row => !selection.perimeter || selection.perimeter === "Totale" || same(label(row, "Perimetro"), selection.perimeter);
+  let clients = base.raw.clients.filter(inPerimeter);
+  let offers = base.raw.offers.filter(inPerimeter);
+  let work = base.raw.work.filter(inPerimeter);
+  if (selection.category) {
+    offers = offers.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
+    work = work.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
+  }
+  if (selection.status) {
+    offers = offers.filter(row => same(label(row, "StatoOfferta"), selection.status));
+    work = work.filter(row => same(label(row, "StatoOfferta"), selection.status));
+  }
+  const allowedClients = new Set([...offers, ...work].map(row => label(row, "Cliente")).filter(Boolean));
+  if (selection.client) {
+    clients = clients.filter(row => same(label(row, "Cliente"), selection.client));
+    offers = offers.filter(row => same(label(row, "Cliente"), selection.client));
+    work = work.filter(row => same(label(row, "Cliente"), selection.client));
+  } else if (selection.category || selection.status) {
+    clients = clients.filter(row => allowedClients.has(label(row, "Cliente")));
+  }
+  const perimeterMap = new Map();
+  for (const row of clients) {
+    const name = label(row, "Perimetro");
+    if (!name) continue;
+    if (!perimeterMap.has(name)) perimeterMap.set(name, { "Clienti_Unificati[Perimetro]": name });
+    const total = perimeterMap.get(name);
+    for (const key of metricFields) total[`[${key}]`] = (Number(total[`[${key}]`]) || 0) + num(row, key);
+  }
+  return shapeDashboard([...perimeterMap.values()], clients, offers, work);
 }
 
 async function connectAndLoad() {
@@ -236,5 +293,5 @@ async function connectAndLoad() {
   return dashboard;
 }
 
-window.PowerBIConnector = { connectAndLoad };
+window.PowerBIConnector = { connectAndLoad, filterDashboard };
 

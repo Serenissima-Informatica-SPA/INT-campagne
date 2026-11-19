@@ -41,18 +41,33 @@ const demo = {
   ],
   pipeline: [
     { label: "Da contattare", count: 35, apparatus: 87 },
-    { label: "Contattato", count: 42, apparatus: 126 },
-    { label: "Interesse", count: 39, apparatus: 118 },
-    { label: "Offerta", count: 55, apparatus: 276 },
-    { label: "Negoziazione", count: 48, apparatus: 190 },
-    { label: "Confermato", count: 31, apparatus: 157 }
+    { label: "Contattato", count: 32, apparatus: 78 },
+    { label: "Interesse", count: 26, apparatus: 66 },
+    { label: "Offerta", count: 20, apparatus: 58 },
+    { label: "Negoziazione", count: 14, apparatus: 40 },
+    { label: "Confermato", count: 10, apparatus: 31 }
+  ],
+  commercialMetrics: [
+    { label: "CLIENTI TOTALI", value: 219, detail: "" },
+    { label: "CONTATTATI", value: 145, detail: "66,2%" },
+    { label: "CON OFFERTA", value: 89, detail: "40,6%" },
+    { label: "NEGOZIAZIONE", value: 48, detail: "21,9%" },
+    { label: "CONFERMATI", value: 31, detail: "14,2%" },
+    { label: "PERSI", value: 9, detail: "4,1%" }
+  ],
+  commercialDetails: [
+    { client: "Forte Village", owner: "Comm. A", apparatus: 98, state: "Negoziazione", date: "06/11", action: "Revisione offerta" },
+    { client: "IHC", owner: "Comm. B", apparatus: 49, state: "Offerta", date: "03/11", action: "Sollecito" },
+    { client: "Rocco Forte", owner: "Comm. A", apparatus: 31, state: "Contattato", date: "28/10", action: "Presentazione" },
+    { client: "Global Ingross", owner: "M. Primavera", apparatus: 86, state: "Confermato", date: "08/11", action: "Pianificare ordine" },
+    { client: "Planetaria", owner: "Comm. C", apparatus: 29, state: "Da contattare", date: "—", action: "Primo contatto" }
   ],
   worklist: [
-    { type: "fredde", category: "FREDDA >20 GG", client: "Cliente dimostrativo A", apparatus: 29, state: "Da contattare", days: 25, action: "Primo contatto", owner: "Commerciale C" },
-    { type: "sollecito", category: "DA SOLLECITARE", client: "Cliente dimostrativo B", apparatus: 49, state: "Offerta", days: 19, action: "Sollecito decisione", owner: "Commerciale B" },
-    { type: "sollecito", category: "DA SOLLECITARE", client: "Cliente dimostrativo C", apparatus: 31, state: "Negoziazione", days: 15, action: "Revisione offerta", owner: "Commerciale A" },
-    { type: "sollecito", category: "DA SOLLECITARE", client: "Cliente dimostrativo D", apparatus: 86, state: "Contattato", days: 12, action: "Demo soluzione", owner: "Commerciale A" },
-    { type: "calde", category: "CALDA <10 GG", client: "Cliente dimostrativo E", apparatus: 86, state: "Confermato", days: 4, action: "Ordine fornitore", owner: "Owner commerciale" }
+    { type: "fredde", category: "FREDDA >20 GG", client: "Planetaria", apparatus: 29, state: "Da contattare", days: 25, action: "Primo contatto", owner: "Comm. C" },
+    { type: "sollecito", category: "DA SOLLECITARE", client: "IHC", apparatus: 49, state: "Offerta", days: 19, action: "Sollecito decisione", owner: "Comm. B" },
+    { type: "sollecito", category: "DA SOLLECITARE", client: "Forte Village", apparatus: 98, state: "Negoziazione", days: 15, action: "Revisione offerta", owner: "Comm. A" },
+    { type: "sollecito", category: "DA SOLLECITARE", client: "Rocco Forte", apparatus: 31, state: "Contattato", days: 12, action: "Demo soluzione", owner: "Comm. A" },
+    { type: "calde", category: "CALDA <10 GG", client: "Global Ingross", apparatus: 86, state: "Confermato", days: 4, action: "Ordine fornitore", owner: "M. Primavera" }
   ],
   priorityCounts: { scadute: 17, fredde: 16, sollecito: 14, calde: 40 }
 };
@@ -162,29 +177,64 @@ function renderExpected(){
   qs("#expected-note").textContent=data.mode==="live"?"Valori dal modello semantico Power BI · Bergamo e GDO esclusi.":"Atteso totale da baseline campagna. Atteso HW/Servizi: stima con la stessa ripartizione dell’acquisito (68,8% / 31,2%). Dati esemplificativi.";
 }
 function renderPipeline(){
-  const total=data.pipeline.reduce((a,x)=>a+x.count,0),won=data.pipeline.find(x=>x.label==="Vinte")?.count ?? data.pipeline.at(-1).count;
-  const stats=data.mode==="live"?[
-    {label:"OFFERTE TOTALI",value:total,note:"nel perimetro selezionato"},
-    {label:"IN CORSO",value:data.pipeline.find(x=>x.label==="In corso")?.count ?? 0,note:"stato nel modello"},
-    {label:"VINTE",value:won,note:"stato nel modello"},
-    {label:"PERSE",value:data.pipeline.find(x=>x.label==="Perse")?.count ?? 0,note:"stato nel modello"},
-    {label:"CLIENTI VINTI",value:data.wonClients ?? 0,note:"dal modello Power BI"}
-  ]:[{label:"CLIENTI TOTALI",value:total,note:"nel perimetro demo"},{label:"CONTATTATI",value:145,note:"66,2% del target"},{label:"CON OFFERTA",value:89,note:"40,6% del target"},{label:"NEGOZIAZIONE",value:48,note:"21,9% del target"},{label:"CONFERMATI",value:won,note:"14,2% del target"}];
-  qs("#pipeline-kpis").innerHTML=stats.map(x=>`<div class="small-stat"><span>${x.label}</span><strong>${number(x.value)}</strong><small>${x.note}</small></div>`).join("");
-  const max=Math.max(1,...data.pipeline.map(x=>x.count));
-  qs("#pipeline-chart").innerHTML=data.pipeline.map(x=>`<div class="pipe-row"><span class="pipe-label">${escapeHtml(x.label)}</span><div class="pipe-track"><div class="pipe-fill" style="width:${Math.max(8,x.count/max*100)}%">${x.count}</div></div><span class="pipe-count">${x.apparatus} app.</span></div>`).join("");
-  qs("#pipeline-table").innerHTML=`<div class="mini-row header"><span>CLIENTE</span><span>APP.</span><span>STATO</span><span>AZIONE</span></div>`+data.worklist.slice(0,4).map(x=>`<div class="mini-row"><span>${escapeHtml(x.client)}</span><span>${x.apparatus}</span><span><i class="status ${x.type===`calde`?`green`:x.type===`fredde`?`orange`:x.type===`scadute`?`red`:`blue`}">${escapeHtml(x.state)}</i></span><span>${escapeHtml(x.action)}</span></div>`).join("");
+  const metrics=data.commercialMetrics||[];
+  const fallback=[
+    {label:"CLIENTI TOTALI",value:data.totals?.clientTarget||0,detail:""},
+    {label:"CONTATTATI",value:data.pipelineStages?.contacted||0,detail:""},
+    {label:"CON OFFERTA",value:data.pipelineStages?.offer||0,detail:""},
+    {label:"NEGOZIAZIONE",value:data.pipelineStages?.negotiation||0,detail:""},
+    {label:"CONFERMATI",value:data.pipelineStages?.won||0,detail:""},
+    {label:"PERSI",value:data.pipelineStages?.lost||0,detail:""}
+  ];
+  const stats=metrics.length?metrics:fallback;
+  qs("#pipeline-kpis").innerHTML=stats.map(item=>`<div class="small-stat"><span>${escapeHtml(item.label)}</span><strong>${number(item.value||0)}</strong><small>${escapeHtml(item.detail||"")}</small></div>`).join("");
+  let stages=data.pipeline||[];
+  if(data.mode==="live"){
+    const normalize=value=>String(value||"").toLowerCase();
+    const definitions=[
+      ["Da contattare",/da contattare|nuovo|new/],
+      ["Contattato",/contattat/],
+      ["Interesse",/interess/],
+      ["Offerta",/offerta|quote/],
+      ["Negoziazione",/negozia/],
+      ["Confermato",/confermato|won|vinto/]
+    ];
+    stages=definitions.map(([label,pattern])=>{
+      const matches=(data.worklist||[]).filter(row=>pattern.test(normalize(row.state)));
+      return {label,count:new Set(matches.map(row=>row.client)).size,apparatus:matches.reduce((sum,row)=>sum+(Number(row.apparatus)||0),0)};
+    });
+  }
+  const max=Math.max(1,...stages.flatMap(row=>[Number(row.count)||0,Number(row.apparatus)||0]));
+  qs("#pipeline-chart").innerHTML=stages.map(row=>{
+    const clientsWidth=Math.max(row.count?2:0,(Number(row.count)||0)/max*100);
+    const apparatusWidth=Math.max(row.apparatus?2:0,(Number(row.apparatus)||0)/max*100);
+    return `<div class="pipeline-stage"><span class="pipeline-stage-label">${escapeHtml(row.label)}</span><div class="pipeline-stage-bars"><span class="pipeline-stage-bar clients" style="width:${clientsWidth}%"></span><span class="pipeline-stage-bar apparatus" style="width:${apparatusWidth}%"></span></div></div>`;
+  }).join("");
+  const details=data.commercialDetails||(data.worklist||[]).slice(0,5).map(row=>({client:row.client,owner:row.owner,apparatus:row.apparatus,state:row.state,date:"—",action:row.action}));
+  qs("#pipeline-table").innerHTML=`<div class="commercial-row commercial-header"><span>CLIENTE</span><span>OWNER</span><span>APP.</span><span>STATO</span><span>DATA</span><span>PROSSIMA AZIONE</span></div>`+details.slice(0,5).map(row=>`<div class="commercial-row"><span>${escapeHtml(row.client)}</span><span>${escapeHtml(row.owner)}</span><span>${number(row.apparatus||0)}</span><span>${escapeHtml(row.state)}</span><span>${escapeHtml(row.date||"—")}</span><span>${escapeHtml(row.action)}</span></div>`).join("");
+  const insight=data.mode==="live"?"Dettaglio operativo estratto dalle offerte nel modello semantico.":"Insight: 48 clienti trattati rappresentano 190 apparati: il KPI clienti da solo sottostima il peso delle opportunità.";
+  qs("#pipeline-insight").textContent=insight;
 }
 function renderPriorities(){
-  const stats=[{label:"OFFERTE SCADUTE",value:data.priorityCounts.scadute,note:"intervento immediato",color:"#cf6255"},{label:"OFFERTE FREDDE >20 GG",value:data.priorityCounts.fredde,note:"nessuna attività recente",color:"#e4a348"},{label:"DA SOLLECITARE >10 GG",value:data.priorityCounts.sollecito,note:"richiesto follow-up",color:"#5bacc7"},{label:"OFFERTE CALDE <10 GG",value:data.priorityCounts.calde,note:"opportunità attive",color:"#45a180"}];
-  qs("#priority-kpis").innerHTML=stats.map(x=>`<div class="metric-block" style="--accent:${x.color}"><span>${x.label}</span><strong>${x.value}</strong><small>${x.note}</small></div>`).join("");
-  const list=data.worklist.filter(x=>state.priority==="tutte"||x.type===state.priority);
-  qs("#worklist-rows").innerHTML=list.map(x=>{const color=x.type==="scadute"?"#cf6255":x.type==="fredde"?"#e2a044":x.type==="calde"?"#45a180":"#5bacc7";return `<tr><td><span class="priority-tag" style="--priority:${color}"><i></i>${escapeHtml(x.category)}</span></td><td>${escapeHtml(x.client)}</td><td>${x.apparatus}</td><td><i class="status ${x.type===`calde`?`green`:x.type===`fredde`?`orange`:x.type===`scadute`?`red`:`blue`}">${escapeHtml(x.state)}</i></td><td>${x.days}</td><td>${escapeHtml(x.action)}</td><td>${escapeHtml(x.owner)}</td></tr>`}).join("");
-  const rules=[{name:"Scadenza superata",desc:"Offerta scaduta: intervento immediato.",color:"#cf6255"},{name:"Fredda · oltre 20 giorni",desc:"Nessuna attività commerciale recente.",color:"#e4a348"},{name:"Da sollecitare · oltre 10 giorni",desc:"Follow-up richiesto al referente.",color:"#5bacc7"},{name:"Calda · entro 10 giorni",desc:"Offerta attiva con prossima azione ravvicinata.",color:"#45a180"}];
-  qs("#priority-rules").innerHTML=rules.map(x=>`<div class="rule" style="--priority:${x.color}"><i></i><div><b>${x.name}</b><span>${x.desc}</span></div></div>`).join("");
+  const palette={scadute:"#e95757",fredde:"#f3c04b",sollecito:"#32a1f8",calde:"#2ba38f"};
+  const stats=[
+    {key:"scadute",label:"OFFERTE SCADUTE",value:data.priorityCounts.scadute,color:palette.scadute},
+    {key:"fredde",label:"OFFERTE FREDDE >20 GG",value:data.priorityCounts.fredde,color:palette.fredde},
+    {key:"sollecito",label:"OFFERTE DA SOLLECITARE >10 GG",value:data.priorityCounts.sollecito,color:palette.sollecito},
+    {key:"calde",label:"OFFERTE CALDE <10 GG",value:data.priorityCounts.calde,color:palette.calde}
+  ];
+  qs("#priority-kpis").innerHTML=stats.map(item=>`<div class="metric-block" style="--accent:${item.color}"><span>${item.label}</span><strong>${number(item.value||0)}</strong><small></small></div>`).join("");
+  const list=(data.worklist||[]).slice(0,8);
+  qs("#worklist-rows").innerHTML=list.map(row=>`<tr><td><span class="priority-tag" style="--priority:${palette[row.type]||"#32a1f8"}"><i></i>${escapeHtml(row.category)}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.apparatus||0)}</td><td><i class="status ${row.type==="calde"?"green":row.type==="fredde"?"orange":row.type==="scadute"?"red":"blue"}">${escapeHtml(row.state)}</i></td><td>${number(row.days||0)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("");
+  const max=Math.max(1,...stats.map(item=>Number(item.value)||0));
+  qs("#priority-chart").innerHTML=`<div class="priority-bars">${stats.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group"><div class="priority-bar-wrap"><span class="priority-bar-value">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;--bar-height:${height}%;background:${item.color}"></div></div><span class="priority-bar-label">${item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg"}</span></div>`}).join("")}</div>`;
+  const overdue=stats.find(item=>item.key==="scadute")?.value||0;
+  qs("#priority-alert").textContent=`${number(overdue)} offerte scadute richiedono un intervento immediato`;
+  const rules=[{name:"Rosso",desc:"Scadenza superata",color:palette.scadute},{name:"Giallo",desc:">20 giorni fermi",color:palette.fredde},{name:"Celeste",desc:">10 giorni, da sollecitare",color:palette.sollecito},{name:"Verde",desc:"<10 giorni",color:palette.calde}];
+  qs("#priority-rules").innerHTML=`<b class="priority-rules-title">Regole semaforo</b>`+rules.map(rule=>`<div class="priority-rule" style="--priority:${rule.color}"><i></i><span><b>${rule.name}</b><small>${rule.desc}</small></span></div>`).join("");
 }
 function goPage(page){
-  state.page=page; document.body.classList.toggle("atteso-mode",page==="atteso"); qs("#demo-notice").hidden=data.mode==="live"||page==="atteso"; qsa(".page-view").forEach(x=>x.classList.toggle("active",x.id===`page-${page}`)); qsa(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  state.page=page; document.body.classList.toggle("atteso-mode",page==="atteso"); document.body.classList.toggle("pipeline-mode",page==="avanzamento"); document.body.classList.toggle("priority-mode",page==="priorita"); qs("#demo-notice").hidden=data.mode==="live"||page==="atteso"||page==="avanzamento"||page==="priorita"; qsa(".page-view").forEach(x=>x.classList.toggle("active",x.id===`page-${page}`)); qsa(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   const meta={panoramica:["01","Executive overview","La fotografia della campagna: target, conversione e valore."],atteso:["02","Atteso vs acquisito","Confronto tra i valori economici acquisiti e quelli attesi dalla campagna: quanto è stato fatto e quanto manca all’obiettivo."],avanzamento:["03","Avanzamento commerciale","Doppia lettura: conversione dei clienti e degli apparati."],priorita:["04","Priorità e attività","Una worklist giornaliera ordinata per urgenza commerciale."]}[page];
   qs("#section-number").textContent=meta[0];qs("#page-title").textContent=meta[1];qs("#page-subtitle").textContent=meta[2];
   window.scrollTo({top:0,behavior:"smooth"});
@@ -206,7 +256,7 @@ qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("
 qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel()}));
 qs("#client-search").addEventListener("input",e=>{state.search=e.target.value;renderClients()});
 qs("#table-more").addEventListener("click",()=>{state.showAll=!state.showAll;renderClients();showToast(state.showAll?"Tutti i clienti di esempio":"Vista sintetica")});
-qs("#priority-filter").addEventListener("change",e=>{state.priority=e.target.value;renderPriorities()});
+
 qs("#connect-open").addEventListener("click",connectDialog);qs("#notice-connect").addEventListener("click",connectDialog);qs("#model-open").addEventListener("click",()=>qs("#model-dialog").showModal());
 qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");

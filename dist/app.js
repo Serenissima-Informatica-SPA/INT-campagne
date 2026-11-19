@@ -91,12 +91,74 @@ function renderClients(){
   qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.hw+total.fee)}</td></tr>`;
 }
 function renderKpis(){qs("#kpi-strip").innerHTML=data.economics.map(x=>`<article class="kpi-card" style="--kpi-color:${x.color}"><span class="kpi-label">${x.label.toUpperCase()}</span><strong class="kpi-value">${compact(x.value)}</strong><span class="kpi-detail">${x.detail}</span></article>`).join("")}
+const expectedLabels=["Ricavo totale","Ricavo HW","Ricavo Servizi (Fee)","Margine HW","Margine Servizi","Margine totale"];
+const euroInThousands = value => `€${Math.round((Number(value)||0)/1000).toLocaleString("it-IT")}k`;
+const expectedKpiAmount = value => Number(value)>=1_000_000 ? `€${(Number(value)/1_000_000).toLocaleString("it-IT",{minimumFractionDigits:3,maximumFractionDigits:3})}M` : euroInThousands(value);
+function expectedRowsForSelection(){
+  if(state.perimeter==="Totale") return data.expected.map((row,index)=>({...row,label:expectedLabels[index]||row.label}));
+  let source=data.perimeterEconomics||[];
+  if(!source.length&&data.mode==="demo"){
+    const targetTotal=Math.max(1,data.perimeters.reduce((sum,row)=>sum+(Number(row.target)||0),0));
+    const acquiredTotal=Math.max(1,data.perimeters.reduce((sum,row)=>sum+(Number(row.completed)||0),0));
+    const split=[
+      ["expectedHardware",1,"expected"],["acquiredHardware",1,"acquired"],
+      ["expectedServices",2,"expected"],["acquiredServices",2,"acquired"],
+      ["expectedHardwareMargin",3,"expected"],["acquiredHardwareMargin",3,"acquired"],
+      ["expectedServicesMargin",4,"expected"],["acquiredServicesMargin",4,"acquired"],
+      ["expectedMargin",5,"expected"],["acquiredMargin",5,"acquired"]
+    ];
+    source=data.perimeters.map(perimeter=>{
+      const row={name:perimeter.name};
+      for(const [key,index,kind] of split){
+        const acquired=kind==="acquired";
+        const weight=acquired?(Number(perimeter.completed)||0)/acquiredTotal:(Number(perimeter.target)||0)/targetTotal;
+        row[key]=Math.round((Number(data.expected[index]?.[kind])||0)*weight);
+      }
+      return row;
+    });
+  }
+  const selected=source.filter(row=>row.name===state.perimeter);
+  if(!selected.length) return data.expected.map((row,index)=>({...row,label:expectedLabels[index]||row.label}));
+  const sum=key=>selected.reduce((total,row)=>total+(Number(row[key])||0),0);
+  const expectedHardware=sum("expectedHardware"),acquiredHardware=sum("acquiredHardware");
+  const expectedServices=sum("expectedServices"),acquiredServices=sum("acquiredServices");
+  return [
+    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:acquiredHardware+acquiredServices},
+    {label:expectedLabels[1],expected:expectedHardware,acquired:acquiredHardware},
+    {label:expectedLabels[2],expected:expectedServices,acquired:acquiredServices},
+    {label:expectedLabels[3],expected:sum("expectedHardwareMargin"),acquired:sum("acquiredHardwareMargin")},
+    {label:expectedLabels[4],expected:sum("expectedServicesMargin"),acquired:sum("acquiredServicesMargin")},
+    {label:expectedLabels[5],expected:sum("expectedMargin"),acquired:sum("acquiredMargin")}
+  ];
+}
 function renderExpected(){
-  const acquiredPct=data.totals.expectedRevenue?data.totals.acquiredRevenue/data.totals.expectedRevenue*100:0;
-  const top=[{label:"Ricavi attesi",value:data.totals.expectedRevenue,detail:"baseline campagna",color:"#19365f"},{label:"Ricavi acquisiti",value:data.totals.acquiredRevenue,detail:`${acquiredPct.toFixed(1).replace(".",",")}% dell’atteso`,color:"#2774c8"},{label:"Ricavi mancanti",value:data.totals.missingRevenue,detail:"da acquisire",color:"#f28a27"},{label:"Margine acquisito",value:data.totals.acquiredMargin,detail:data.mode==="live"?"dal modello Power BI":"stima demo",color:"#2da38f"},{label:"Margine mancante",value:data.totals.missingMargin,detail:"da acquisire",color:"#7954da"}];
-  qs("#atteso-metrics").innerHTML=top.map(x=>`<div class="metric-block" style="--accent:${x.color}"><span>${x.label.toUpperCase()}</span><strong>${compact(x.value)}</strong><small>${x.detail}</small></div>`).join("");
-  qs("#comparison-chart").innerHTML=`<div class="compare-legend"><span><i class="swatch"></i>Acquisito</span><span><i class="swatch pale"></i>Atteso</span></div>`+data.expected.map(x=>{const p=x.expected?x.acquired/x.expected*100:0;return `<div class="compare-row"><span class="compare-label">${x.label}</span><div class="compare-bars"><div class="compare-track"><div class="compare-fill expected" style="width:100%"></div></div><div class="compare-track"><div class="compare-fill" style="width:${p}%"></div></div></div><span class="compare-values">${p.toFixed(1).replace(".",",")}%</span></div>`}).join("");
-  qs("#gap-list").innerHTML=data.expected.map(x=>{const p=x.expected?x.acquired/x.expected*100:0;return `<div class="gap-row"><span>${x.label}</span><strong>${compact(x.expected-x.acquired)}</strong><div class="gap-track"><i style="width:${p}%"></i></div></div>`}).join("");
+  const rows=expectedRowsForSelection();
+  const revenue=rows[0],margin=rows[5];
+  const revenuePct=revenue.expected?revenue.acquired/revenue.expected*100:0;
+  const marginPct=margin.expected?margin.acquired/margin.expected*100:0;
+  const top=[
+    {label:"Ricavi attesi",value:revenue.expected,detail:"baseline campagna",color:"#19365f"},
+    {label:"Ricavi acquisiti",value:revenue.acquired,detail:`${revenuePct.toFixed(1).replace(".",",")}% dell’atteso`,color:"#2774c8"},
+    {label:"Ricavi mancanti",value:Math.max(0,revenue.expected-revenue.acquired),detail:`${Math.max(0,100-revenuePct).toFixed(1).replace(".",",")}% da acquisire`,color:"#f28a27"},
+    {label:"Margine acquisito",value:margin.acquired,detail:`${marginPct.toFixed(1).replace(".",",")}% dell’atteso`,color:"#2da38f"},
+    {label:"Margine mancante",value:Math.max(0,margin.expected-margin.acquired),detail:`${Math.max(0,100-marginPct).toFixed(1).replace(".",",")}% da acquisire`,color:"#7954da"}
+  ];
+  qs("#atteso-metrics").innerHTML=top.map(item=>`<div class="metric-block" style="--accent:${item.color}"><span>${item.label.toUpperCase()}</span><strong>${expectedKpiAmount(item.value)}</strong><small>${item.detail}</small></div>`).join("");
+  qs("#expected-rows").innerHTML=rows.map((row,index)=>{
+    const progress=row.expected?row.acquired/row.expected*100:0;
+    const missing=Math.max(0,row.expected-row.acquired);
+    const totalClass=index===0||index===rows.length-1?" class="expected-total"":"";
+    return `<tr${totalClass}><td>${row.label}</td><td>${euroInThousands(row.acquired)}</td><td>${euroInThousands(row.expected)}</td><td>${progress.toFixed(1).replace(".",",")}%</td><td>${missing?euroInThousands(missing):"—"}</td></tr>`;
+  }).join("");
+  const maximum=Math.max(1,...rows.flatMap(row=>[Number(row.acquired)||0,Number(row.expected)||0]));
+  qs("#expected-chart").innerHTML=`<div class="expected-chart-area">${rows.map(row=>{
+    const progress=row.expected?row.acquired/row.expected*100:0;
+    const acquiredHeight=row.acquired?Math.max(3,(row.acquired/maximum)*86):0;
+    const expectedHeight=row.expected?Math.max(3,(row.expected/maximum)*86):0;
+    const bar=(value,height,type)=>`<div class="expected-bar-column ${type}" style="--bar-height:${height}%"><span class="expected-bar-value">${euroInThousands(value)}</span><div class="expected-bar">${type==="acquired"&&height>=12?`<span class="expected-bar-percent">${progress.toFixed(1).replace(".",",")}%</span>`:""}</div></div>`;
+    return `<div class="expected-chart-group"><div class="expected-chart-bars">${bar(row.acquired,acquiredHeight,"acquired")}${bar(row.expected,expectedHeight,"expected")}</div><span class="expected-chart-label">${row.label}</span></div>`;
+  }).join("")}</div><div class="expected-chart-legend"><span><i class="expected-swatch acquired"></i>Acquisito</span><span><i class="expected-swatch expected"></i>Atteso campagna</span></div>`;
+  qs("#expected-note").textContent=data.mode==="live"?"Valori dal modello semantico Power BI · Bergamo e GDO esclusi.":"Atteso totale da baseline campagna. Atteso HW/Servizi: stima con la stessa ripartizione dell’acquisito (68,8% / 31,2%). Dati esemplificativi.";
 }
 function renderPipeline(){
   const total=data.pipeline.reduce((a,x)=>a+x.count,0),won=data.pipeline.find(x=>x.label==="Vinte")?.count ?? data.pipeline.at(-1).count;
@@ -121,8 +183,8 @@ function renderPriorities(){
   qs("#priority-rules").innerHTML=rules.map(x=>`<div class="rule" style="--priority:${x.color}"><i></i><div><b>${x.name}</b><span>${x.desc}</span></div></div>`).join("");
 }
 function goPage(page){
-  state.page=page; qsa(".page-view").forEach(x=>x.classList.toggle("active",x.id===`page-${page}`)); qsa(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
-  const meta={panoramica:["01","Executive overview","La fotografia della campagna: target, conversione e valore."],atteso:["02","Atteso vs acquisito","Confronto tra i valori acquisiti e il target della campagna."],avanzamento:["03","Avanzamento commerciale","Doppia lettura: conversione dei clienti e degli apparati."],priorita:["04","Priorità e attività","Una worklist giornaliera ordinata per urgenza commerciale."]}[page];
+  state.page=page; document.body.classList.toggle("atteso-mode",page==="atteso"); qs("#demo-notice").hidden=data.mode==="live"||page==="atteso"; qsa(".page-view").forEach(x=>x.classList.toggle("active",x.id===`page-${page}`)); qsa(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  const meta={panoramica:["01","Executive overview","La fotografia della campagna: target, conversione e valore."],atteso:["02","Atteso vs acquisito","Confronto tra i valori economici acquisiti e quelli attesi dalla campagna: quanto è stato fatto e quanto manca all’obiettivo."],avanzamento:["03","Avanzamento commerciale","Doppia lettura: conversione dei clienti e degli apparati."],priorita:["04","Priorità e attività","Una worklist giornaliera ordinata per urgenza commerciale."]}[page];
   qs("#section-number").textContent=meta[0];qs("#page-title").textContent=meta[1];qs("#page-subtitle").textContent=meta[2];
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -139,7 +201,7 @@ window.applyPowerBIData = liveData => {
 };
 renderAll();
 qsa(".nav-item").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.page)));
-qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;state.perimeter=b.dataset.perimeter;renderFilters();renderPerimeters();});
+qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;state.perimeter=b.dataset.perimeter;renderFilters();renderPerimeters();renderExpected();});
 qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel()}));
 qs("#client-search").addEventListener("input",e=>{state.search=e.target.value;renderClients()});
 qs("#table-more").addEventListener("click",()=>{state.showAll=!state.showAll;renderClients();showToast(state.showAll?"Tutti i clienti di esempio":"Vista sintetica")});

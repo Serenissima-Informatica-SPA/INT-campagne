@@ -277,13 +277,16 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
   const statusRows = key => offerRows.filter(row => label(row, "StatoOfferta").toLowerCase() === key.toLowerCase());
   const statusCount = key => sum(statusRows(key), "ConteggioOfferte");
   const statusUnits = key => sum(statusRows(key), "QuantitaHardware");
-  const clientHot = new Set(workRows.filter(row => categoryKey(label(row, "Categoria")) === "calde").map(accountKey)).size;
-  const clientLost = new Set(workRows.filter(row => label(row, "StatoOfferta").toLowerCase() === "lost").map(accountKey)).size;
+  const clientsInOffers = condition => new Set(offerRows.filter(condition).map(accountKey).filter(Boolean)).size;
+  const clientHot = clientsInOffers(row => categoryKey(label(row, "Categoria")) === "calde");
+  const clientWon = clientsInOffers(row => label(row, "StatoOfferta").toLowerCase() === "won");
+  const clientLost = clientsInOffers(row => label(row, "StatoOfferta").toLowerCase() === "lost");
+  const clientInProgress = clientsInOffers(row => label(row, "StatoOfferta").toLowerCase() === "in progress");
   const funnel = [
     { label: "Target", apparati: totals.RTCensite, clienti: totals.ClientiTarget, color: "#19365f" },
-    { label: "In progress", apparati: statusUnits("In Progress"), clienti: totals.ClientiConOfferta, color: "#2774c8" },
+    { label: "In progress", apparati: statusUnits("In Progress"), clienti: clientInProgress, color: "#2774c8" },
     { label: "Hot", apparati: offerUnits(row => categoryKey(label(row, "Categoria")) === "calde"), clienti: clientHot, color: "#39a0ec" },
-    { label: "Won", apparati: statusUnits("Won"), clienti: totals.ClientiVinti, color: "#f28a27" },
+    { label: "Won", apparati: statusUnits("Won"), clienti: clientWon, color: "#f28a27" },
     { label: "Lost", apparati: statusUnits("Lost"), clienti: clientLost, color: "#2da38f" }
   ];
   const pipeline = [

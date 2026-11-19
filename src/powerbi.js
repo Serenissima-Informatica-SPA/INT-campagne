@@ -14,13 +14,11 @@ SUMMARIZECOLUMNS(
   "ClientiConOfferta", SUM('Clienti_Unificati'[ClientiConOfferta]),
   "RTCensite", SUM('Clienti_Unificati'[RTCensite]),
   "RTSelezionate", SUM('Clienti_Unificati'[RTSelezionate]),
-  "HW", SUM('Clienti_Unificati'[ValoreHardwareEUR]),
-  "Fee", SUM('Clienti_Unificati'[ValoreServiziEUR]),
-  "Totale", SUM('Clienti_Unificati'[ValoreOfferteEUR]),
   "RTDaVerificare", SUM('Clienti_Unificati'[RTDaVerificare]),
   "Offerte", SUM('Clienti_Unificati'[Offerte]),
   "OfferteInCorso", SUM('Clienti_Unificati'[OfferteInCorso]),
   "OfferteVinte", SUM('Clienti_Unificati'[OfferteVinte]),
+  "AttesoPezzi", [AttesoPezzi],
   "AttesoRicavoTotale", [AttesoRicavoTotale],
   "AttesoRicavoHW", [AttesoRicavoHW],
   "AttesoServizi", [AttesoServizi],
@@ -53,6 +51,7 @@ const clientsDax = `
 EVALUATE
 SUMMARIZECOLUMNS(
   'Clienti_Unificati'[Perimetro],
+  'Clienti_Unificati'[AP],
   'Clienti_Unificati'[ChiaveAccount],
   'Clienti_Unificati'[Cliente],
   "ClientiTarget", SUM('Clienti_Unificati'[ClientiTarget]),
@@ -66,9 +65,10 @@ SUMMARIZECOLUMNS(
   "OfferteVinte", SUM('Clienti_Unificati'[OfferteVinte]),
   "StimaHardwareEUR", SUM('Clienti_Unificati'[StimaHardwareEUR]),
   "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
-  "HW", SUM('Clienti_Unificati'[ValoreHardwareEUR]),
-  "Fee", SUM('Clienti_Unificati'[ValoreServiziEUR]),
-  "Totale", SUM('Clienti_Unificati'[ValoreOfferteEUR]),
+  "N.RT", [N.RT],
+  "HW", [HW],
+  "Fee", [Fee],
+  "Totale", [Totale],
   "ValoreVinteEUR", [ValoreVinte],
   "ValoreHardwareVinteEUR", [ValoreHardwareVinte],
   "ValoreServiziVinteEUR", [ValoreServiziVinte],
@@ -87,7 +87,11 @@ SUMMARIZECOLUMNS(
   'Offerte_Unificate'[Cliente],
   'Offerte_Unificate'[StatoOfferta],
   'Offerte_Unificate'[Categoria],
+  'Offerte_Unificate'[PrioritaEta],
+  'Offerte_Unificate'[Agente],
   "ConteggioOfferte", COUNT('Offerte_Unificate'[StatoOfferta]),
+  "ConteggioPriorita", COUNT('Offerte_Unificate'[PrioritaEta]),
+  "HotCount", SUM('Offerte_Unificate'[Fino10]),
   "QuantitaHardware", SUM('Offerte_Unificate'[QuantitaHardware])
 )`;
 
@@ -100,6 +104,7 @@ VAR Worklist =
     'Offerte_Unificate'[Cliente],
     'Offerte_Unificate'[StatoOfferta],
     'Offerte_Unificate'[Categoria],
+    'Offerte_Unificate'[PrioritaEta],
     'Offerte_Unificate'[Agente],
     "GiorniDaCreazione", MAX('Offerte_Unificate'[GiorniDaCreazione]),
     "QuantitaHardware", SUM('Offerte_Unificate'[QuantitaHardware]),
@@ -130,6 +135,16 @@ SUMMARIZECOLUMNS(
   'MisuraDinamica'[Tipo],
   "Confronto", [Confronto]
 )`;
+
+const overviewProgressDax = `
+EVALUATE
+VAR ProgressRows =
+  SUMMARIZECOLUMNS(
+    'Overview_Perimetro'[Perimetro],
+    'AsseAP'[Categoria],
+    "AvanzamentoDinamico", [Avanzamento dinamico]
+  )
+RETURN FILTER(ProgressRows, NOT ISBLANK([AvanzamentoDinamico]))`;
 
 function configured() {
   return Boolean(settings.clientId && settings.datasetId && settings.workspaceId);

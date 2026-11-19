@@ -400,7 +400,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
   return {
     mode: "live",
     filterPerimeters: ["Totale", ...perimeters.map(row => displayPerimeter(label(row, "Perimetro")))],
-    totals: { expectedRevenue, acquiredRevenue, missingRevenue, acquiredMargin, missingMargin },
+    totals: { expectedRevenue, acquiredRevenue, missingRevenue, acquiredMargin, missingMargin, ClientiTarget: totals.ClientiTarget, ClientiVinti: totals.ClientiVinti },
     economics,
     funnel,
     perimeters: perimeters.map((row, index) => ({ name: displayPerimeter(label(row, "Perimetro")), completed: num(row, "ClientiVinti"), target: num(row, "ClientiTarget"), color: colors[index % colors.length] })),

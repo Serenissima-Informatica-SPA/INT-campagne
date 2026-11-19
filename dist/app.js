@@ -73,8 +73,9 @@ const demo = {
 };
 
 let data = demo;
+let liveSourceData = null;
 
-const state = { page: "panoramica", perimeter: "Totale", funnel: "apparati", search: "", priority: "tutte", showAll: false };
+const state = { page: "panoramica", perimeter: "Totale", funnel: "apparati", search: "", priority: "tutte", showAll: false, cross: { category: null, status: null, client: null } };
 const qs = (s, root=document) => root.querySelector(s);
 const qsa = (s, root=document) => [...root.querySelectorAll(s)];
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -89,7 +90,7 @@ function filteredPerimeters(){return state.perimeter==="Totale"?data.filterPerim
 function renderFunnel(){
   const key=state.funnel; const max=Math.max(...data.funnel.map(x=>x[key]));
   qs("#funnel-title").textContent=key==="apparati"?"Funnel apparati":"Funnel clienti";
-  qs("#funnel-chart").innerHTML=data.funnel.map(x=>{const val=x[key],width=val?Math.max(30,42+(val/max)*56):30;return `<div class="funnel-step" style="width:${width}%;background:${x.color}">${x.label}<span class="funnel-value">${number(val)}</span></div>`}).join("");
+  qs("#funnel-chart").innerHTML=data.funnel.map(x=>{const val=x[key],width=val?Math.max(30,42+(val/max)*56):30;const filter=x.label==="Target"?"target":x.label==="Hot"?"category:calde":`status:${x.label==="In progress"?"In Progress":x.label}`;return `<div class="funnel-step" data-funnel-filter="${filter}" role="button" tabindex="0" title="Filtra le altre visualizzazioni" style="cursor:pointer;width:${width}%;background:${x.color}">${x.label}<span class="funnel-value">${number(val)}</span></div>`}).join("");
 }
 function renderPerimeters(){
   const rows=data.perimeters.filter(x=>filteredPerimeters().includes(x.name));
@@ -101,7 +102,7 @@ function renderPerimeters(){
 function renderClients(){
   const visible=data.clients.filter(x=>x.name.toLowerCase().includes(state.search.toLowerCase()));
   const rows=state.showAll?visible:visible.slice(0,5); qs("#row-count").textContent=`${visible.length} clienti`;
-  qs("#client-rows").innerHTML=rows.map(x=>`<tr><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.hw+x.fee)}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
+  qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.hw+x.fee)}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
   const total=data.clients.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee}),{count:0,hw:0,fee:0});
   qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.hw+total.fee)}</td></tr>`;
 }
@@ -208,10 +209,10 @@ function renderPipeline(){
   qs("#pipeline-chart").innerHTML=stages.map(row=>{
     const clientsWidth=Math.max(row.count?2:0,(Number(row.count)||0)/max*100);
     const apparatusWidth=Math.max(row.apparatus?2:0,(Number(row.apparatus)||0)/max*100);
-    return `<div class="pipeline-stage"><span class="pipeline-stage-label">${escapeHtml(row.label)}</span><div class="pipeline-stage-bars"><span class="pipeline-stage-bar clients" style="width:${clientsWidth}%"></span><span class="pipeline-stage-bar apparatus" style="width:${apparatusWidth}%"></span></div></div>`;
+    return `<div class="pipeline-stage" data-cross-kind="status" data-cross-value="${escapeHtml(row.label)}" title="Filtra per stato" style="cursor:pointer"><span class="pipeline-stage-label">${escapeHtml(row.label)}</span><div class="pipeline-stage-bars"><span class="pipeline-stage-bar clients" style="width:${clientsWidth}%"></span><span class="pipeline-stage-bar apparatus" style="width:${apparatusWidth}%"></span></div></div>`;
   }).join("");
   const details=data.commercialDetails||(data.worklist||[]).slice(0,5).map(row=>({client:row.client,owner:row.owner,apparatus:row.apparatus,state:row.state,date:"—",action:row.action}));
-  qs("#pipeline-table").innerHTML=`<div class="commercial-row commercial-header"><span>CLIENTE</span><span>OWNER</span><span>APP.</span><span>STATO</span><span>DATA</span><span>PROSSIMA AZIONE</span></div>`+details.slice(0,5).map(row=>`<div class="commercial-row"><span>${escapeHtml(row.client)}</span><span>${escapeHtml(row.owner)}</span><span>${number(row.apparatus||0)}</span><span>${escapeHtml(row.state)}</span><span>${escapeHtml(row.date||"—")}</span><span>${escapeHtml(row.action)}</span></div>`).join("");
+  qs("#pipeline-table").innerHTML=`<div class="commercial-row commercial-header"><span>CLIENTE</span><span>OWNER</span><span>APP.</span><span>STATO</span><span>DATA</span><span>PROSSIMA AZIONE</span></div>`+details.slice(0,5).map(row=>`<div class="commercial-row" data-cross-kind="client" data-cross-value="${escapeHtml(row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><span>${escapeHtml(row.client)}</span><span>${escapeHtml(row.owner)}</span><span>${number(row.apparatus||0)}</span><span>${escapeHtml(row.state)}</span><span>${escapeHtml(row.date||"—")}</span><span>${escapeHtml(row.action)}</span></div>`).join("");
   const insight=data.mode==="live"?"Dettaglio operativo estratto dalle offerte nel modello semantico.":"Insight: 48 clienti trattati rappresentano 190 apparati: il KPI clienti da solo sottostima il peso delle opportunità.";
   qs("#pipeline-insight").textContent=insight;
   qs("#pipeline-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
@@ -224,11 +225,11 @@ function renderPriorities(){
     {key:"sollecito",label:"OFFERTE DA SOLLECITARE >10 GG",value:data.priorityCounts.sollecito,color:palette.sollecito},
     {key:"calde",label:"OFFERTE CALDE <10 GG",value:data.priorityCounts.calde,color:palette.calde}
   ];
-  qs("#priority-kpis").innerHTML=stats.map(item=>`<div class="metric-block" style="--accent:${item.color}"><span>${item.label}</span><strong>${number(item.value||0)}</strong><small></small></div>`).join("");
+  qs("#priority-kpis").innerHTML=stats.map(item=>`<div class="metric-block" data-cross-kind="category" data-cross-value="${item.key}" title="Filtra per priorità" style="--accent:${item.color};cursor:pointer"><span>${item.label}</span><strong>${number(item.value||0)}</strong><small></small></div>`).join("");
   const list=(data.worklist||[]).slice(0,8);
-  qs("#worklist-rows").innerHTML=list.map(row=>`<tr><td><span class="priority-tag" style="--priority:${palette[row.type]||"#32a1f8"}"><i></i>${escapeHtml(row.category)}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.apparatus||0)}</td><td><i class="status ${row.type==="calde"?"green":row.type==="fredde"?"orange":row.type==="scadute"?"red":"blue"}">${escapeHtml(row.state)}</i></td><td>${number(row.days||0)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("");
+  qs("#worklist-rows").innerHTML=list.map(row=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td><span class="priority-tag" style="--priority:${palette[row.type]||"#32a1f8"}"><i></i>${escapeHtml(row.category)}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.apparatus||0)}</td><td><i class="status ${row.type==="calde"?"green":row.type==="fredde"?"orange":row.type==="scadute"?"red":"blue"}">${escapeHtml(row.state)}</i></td><td>${number(row.days||0)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("");
   const max=Math.max(1,...stats.map(item=>Number(item.value)||0));
-  qs("#priority-chart").innerHTML=`<div class="priority-bars">${stats.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${item.color}"></div></div><span class="priority-bar-label">${item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg"}</span></div>`}).join("")}</div>`;
+  qs("#priority-chart").innerHTML=`<div class="priority-bars">${stats.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group" data-cross-kind="category" data-cross-value="${item.key}" title="Filtra per priorità" style="cursor:pointer"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${item.color}"></div></div><span class="priority-bar-label">${item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg"}</span></div>`}).join("")}</div>`;
   const overdue=stats.find(item=>item.key==="scadute")?.value||0;
   qs("#priority-alert").textContent=`${number(overdue)} offerte scadute richiedono un intervento immediato`;
   qs("#priority-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
@@ -244,7 +245,26 @@ function goPage(page){
 function connectDialog(){qs("#connect-dialog").showModal()}
 function showToast(message){const el=qs("#toast");el.textContent=message;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2400)}
 function renderAll(){renderFilters();renderFunnel();renderPerimeters();renderClients();renderKpis();renderExpected();renderPipeline();renderPriorities()}
+function applyCrossfilters(){
+  if(liveSourceData&&window.PowerBIConnector?.filterDashboard){
+    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:state.perimeter,...state.cross});
+    renderAll();
+    return;
+  }
+  const cross=state.cross;
+  const matches=(row)=> (!cross.category||row.type===cross.category) && (!cross.status||String(row.state||"").toLowerCase()===cross.status.toLowerCase()) && (!cross.client||row.client===cross.client);
+  const worklist=demo.worklist.filter(matches);
+  const allowed=new Set(worklist.map(row=>row.client));
+  data={...demo,worklist,
+    clients:cross.client?demo.clients.filter(row=>row.name===cross.client):cross.category||cross.status?demo.clients.filter(row=>allowed.has(row.name)):demo.clients,
+    commercialDetails:demo.commercialDetails.filter(row=>(!cross.client||row.client===cross.client)&&(!cross.status||row.state.toLowerCase()===cross.status.toLowerCase())),
+    priorityCounts:cross.category?{scadute:0,fredde:0,sollecito:0,calde:0,[cross.category]:demo.priorityCounts[cross.category]}:demo.priorityCounts
+  };
+  renderAll();
+}
+function setCrossFilter(kind,value){state.cross[kind]=state.cross[kind]===value?null:value;applyCrossfilters()}
 window.applyPowerBIData = liveData => {
+  liveSourceData = liveData;
   data = liveData;
   renderAll();
   qs("#source-label").textContent = "Collegato · Power BI";
@@ -254,7 +274,13 @@ window.applyPowerBIData = liveData => {
 };
 renderAll();
 qsa(".nav-item").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.page)));
-qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;state.perimeter=b.dataset.perimeter;renderFilters();renderPerimeters();renderExpected();});
+qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;state.perimeter=b.dataset.perimeter;applyCrossfilters();});
+document.addEventListener("click",e=>{
+  const cross=e.target.closest("[data-cross-kind]");
+  if(cross){setCrossFilter(cross.dataset.crossKind,cross.dataset.crossValue);return}
+  const funnel=e.target.closest("[data-funnel-filter]");
+  if(funnel){const value=funnel.dataset.funnelFilter;if(value==="target"){state.cross={category:null,status:null,client:null};applyCrossfilters()}else setCrossFilter(value.startsWith("category:")?"category":"status",value.replace(/^category:|^status:/,""))}
+});
 qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel()}));
 qs("#client-search").addEventListener("input",e=>{state.search=e.target.value;renderClients()});
 qs("#table-more").addEventListener("click",()=>{state.showAll=!state.showAll;renderClients();showToast(state.showAll?"Tutti i clienti di esempio":"Vista sintetica")});

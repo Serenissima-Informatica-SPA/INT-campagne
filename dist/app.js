@@ -84,6 +84,14 @@ const compact = n => n === 0 ? "€0" : n < 1000 ? money(n) : n >= 1_000_000 ? `
 const number = n => new Intl.NumberFormat("it-IT").format(n);
 const modelPerimeter = value => /^the special four$/i.test(String(value??"").trim())?"T4":String(value??"").trim();
 const displayPerimeter = value => /^t4$/i.test(String(value??"").trim())?"The Special Four":String(value??"").trim();
+const priorityType = value => {
+  const text=String(value||"").toLowerCase();
+  if(text.includes("scadut")||text.includes(">30"))return "scadute";
+  if(text.includes("21-30")||text.includes("fredda"))return "fredde";
+  if(text.includes("11-20")||text.includes("sollecit"))return "sollecito";
+  if(text.includes("0-10")||text.includes("calda"))return "calde";
+  return "altre";
+};
 
 function currentPerimeter(){return state.page==="panoramica"?state.overviewPerimeter:state.perimeter}
 function renderFilters(){
@@ -283,7 +291,7 @@ function renderPriorities(){
     distribution.set(category,(distribution.get(category)||0)+(Number(row.count)||0));
   }
   const categoryOrder=["Scaduta","Fredda >20gg","Da Sollecitare","Calda <10gg","Categoria vuota"];
-  let bars=[...distribution.entries()].map(([category,value])=>({category,value,type:categoryKey(category)}))
+  let bars=[...distribution.entries()].map(([category,value])=>({category,value,type:priorityType(category)}))
     .sort((a,b)=>{const ai=categoryOrder.findIndex(x=>x.toLowerCase()===a.category.toLowerCase()),bi=categoryOrder.findIndex(x=>x.toLowerCase()===b.category.toLowerCase());return (ai<0?categoryOrder.length:ai)-(bi<0?categoryOrder.length:bi)||a.category.localeCompare(b.category,"it")});
   if(data.mode!=="live") bars=stats.map(item=>({category:item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg",value:item.value,type:item.key}));
   const list=(data.worklist||[]).filter(row=>String(row.priorityEta||"").toLowerCase()!=="confermata"&&ownerMatches(row.owner)).slice(0,8);

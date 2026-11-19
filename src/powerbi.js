@@ -241,6 +241,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
       acquiredHardware: num(row, "ValoreHardwareVinteEUR"),
       expectedServices: num(row, "StimaServiziEUR"),
       acquiredServices: num(row, "ValoreServiziVinteEUR"),
+      acquiredRevenue: num(row, "ValoreVinteEUR"),
       expectedHardwareMargin: num(row, "MargineStimaHardwareEUR"),
       acquiredHardwareMargin: num(row, "MargineHardwareVinteEUR"),
       expectedServicesMargin: num(row, "MargineServiziStimaEUR"),

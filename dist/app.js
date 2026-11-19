@@ -140,7 +140,7 @@ function expectedRowsForSelection(){
   const expectedServices=sum("expectedServices"),acquiredServices=sum("acquiredServices");
   const missing=(key,acquired,expected)=>data.mode==="live"?sum(key):Math.max(0,expected-acquired);
   return [
-    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:acquiredHardware+acquiredServices,missing:missing("missingRevenue",acquiredHardware+acquiredServices,expectedHardware+expectedServices)},
+    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:data.mode==="live"?sum("acquiredRevenue"):acquiredHardware+acquiredServices,missing:missing("missingRevenue",acquiredHardware+acquiredServices,expectedHardware+expectedServices)},
     {label:expectedLabels[1],expected:expectedHardware,acquired:acquiredHardware,missing:missing("missingHardwareRevenue",acquiredHardware,expectedHardware)},
     {label:expectedLabels[2],expected:expectedServices,acquired:acquiredServices,missing:missing("missingServicesRevenue",acquiredServices,expectedServices)},
     {label:expectedLabels[3],expected:sum("expectedHardwareMargin"),acquired:sum("acquiredHardwareMargin"),missing:missing("missingHardwareMargin",sum("acquiredHardwareMargin"),sum("expectedHardwareMargin"))},

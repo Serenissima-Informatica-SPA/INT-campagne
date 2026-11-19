@@ -75,7 +75,7 @@ const demo = {
 let data = demo;
 let liveSourceData = null;
 
-const state = { page: "panoramica", perimeter: "Totale", overviewPerimeter: "Totale", funnel: "apparati", search: "", priority: "tutte", showAll: false, cross: { category: null, status: null, client: null } };
+const state = { page: "panoramica", perimeter: "Totale", overviewPerimeter: "Totale", overviewAxis: null, priorityOwner: "", funnel: "apparati", search: "", priority: "tutte", showAll: false, cross: { category: null, status: null, client: null } };
 const qs = (s, root=document) => root.querySelector(s);
 const qsa = (s, root=document) => [...root.querySelectorAll(s)];
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -95,19 +95,41 @@ function renderFunnel(){
   qs("#funnel-chart").innerHTML=data.funnel.map(x=>{const val=x[key],width=val?Math.max(30,42+(val/max)*56):30;const filter=x.label==="Target"?"target":x.label==="Hot"?"category:calde":`status:${x.label==="In progress"?"In Progress":x.label}`;return `<div class="funnel-step" data-funnel-filter="${filter}" role="button" tabindex="0" title="Filtra le altre visualizzazioni" style="cursor:pointer;width:${width}%;background:${x.color}">${x.label}<span class="funnel-value">${number(val)}</span></div>`}).join("");
 }
 function renderPerimeters(){
-  const rows=data.perimeters.filter(x=>filteredPerimeters().includes(x.name));
-  qs("#perimeter-chart").innerHTML=rows.map(x=>{const value=x.target?x.completed/x.target*100:0;return `<div class="perimeter-row"><span class="perimeter-name">${escapeHtml(x.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(value,0.6)}%;background:${x.color}">${value>=18?`${value.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${x.target?`${x.completed} / ${x.target}`:"n.d."}</span></div>`}).join("");
+  if(data.mode==="live"&&Array.isArray(data.overviewProgress)){
+    const view=modelPerimeter(state.overviewPerimeter);
+    const rows=data.overviewProgress.filter(row=>String(row.view||"").trim().toLocaleLowerCase("it-IT")===view.toLocaleLowerCase("it-IT"));
+    qs("#perimeter-chart").innerHTML=rows.map((row,index)=>{
+      const pct=Math.max(0,Math.min(100,(Number(row.progress)||0)*100));
+      const name=view==="Totale"?displayPerimeter(row.category):row.category;
+      const color=["#2da38f","#2774c8","#f28a27","#39a0ec","#7954da"][index%5];
+      const active=state.overviewAxis===row.category;
+      return `<div class="perimeter-row ${active?"selected":""}" data-overview-axis="${escapeHtml(row.category)}" role="button" tabindex="0" title="Filtra i clienti secondo FiltroClientiDaAsse" style="cursor:pointer"><span class="perimeter-name">${escapeHtml(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,0.6)}%;background:${color}">${pct>=18?`${pct.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${pct.toFixed(1).replace(".",",")}%</span></div>`;
+    }).join("")||`<div class="empty-state">Nessuna categoria per il perimetro selezionato</div>`;
+  }else{
+    const rows=data.perimeters.filter(x=>filteredPerimeters().includes(x.name));
+    qs("#perimeter-chart").innerHTML=rows.map(x=>{const value=x.target?x.completed/x.target*100:0;return `<div class="perimeter-row"><span class="perimeter-name">${escapeHtml(x.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(value,0.6)}%;background:${x.color}">${value>=18?`${value.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${x.target?`${x.completed} / ${x.target}`:"n.d."}</span></div>`}).join("");
+  }
   const total=data.economics[1].value+data.economics[2].value; const conv=total?Math.round(data.funnel[3].apparati/data.funnel[0].apparati*1000)/10:0;
   qs("#conversion-value").textContent=`${conv.toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
   qs("#conversion-donut").style.setProperty("--progress",`${conv}%`);
 }
+function clientMatchesOverviewAxis(row){
+  if(data.mode!=="live"||!state.overviewAxis)return true;
+  const view=modelPerimeter(state.overviewPerimeter);
+  return (row.axes||[]).some(axis=>{
+    const perimeter=modelPerimeter(axis.perimeter);
+    return view==="Totale"?perimeter===modelPerimeter(state.overviewAxis):perimeter===view&&String(axis.ap||"").trim().toLocaleLowerCase("it-IT")===String(state.overviewAxis).trim().toLocaleLowerCase("it-IT");
+  });
+}
 function renderClients(){
-  const visible=data.clients.filter(x=>x.name.toLowerCase().includes(state.search.toLowerCase()));
+  const axisRows=data.clients.filter(clientMatchesOverviewAxis);
+  const visible=axisRows.filter(x=>x.name.toLowerCase().includes(state.search.toLowerCase()));
   const rows=state.showAll?visible:visible.slice(0,5); qs("#row-count").textContent=`${visible.length} clienti`;
   qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.key||x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.total??(x.hw+x.fee))}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
-  const total=data.clients.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee,total:a.total+(x.total??(x.hw+x.fee))}),{count:0,hw:0,fee:0,total:0});
+  const total=axisRows.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee,total:a.total+(x.total??(x.hw+x.fee))}),{count:0,hw:0,fee:0,total:0});
   qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.total)}</td></tr>`;
 }
+
 function renderKpis(){qs("#kpi-strip").innerHTML=data.economics.map(x=>`<article class="kpi-card" style="--kpi-color:${x.color}"><span class="kpi-label">${x.label.toUpperCase()}</span><strong class="kpi-value">${compact(x.value)}</strong><span class="kpi-detail">${x.detail}</span></article>`).join("")}
 const expectedLabels=["Ricavo totale","Ricavo HW","Ricavo Servizi (Fee)","Margine HW","Margine Servizi","Margine totale"];
 const euroInThousands = value => `€${Math.round((Number(value)||0)/1000).toLocaleString("it-IT")}k`;
@@ -233,24 +255,45 @@ function renderPipeline(){
   qs("#pipeline-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
 }
 function renderPriorities(){
-  const palette={scadute:"#e95757",fredde:"#f3c04b",sollecito:"#32a1f8",calde:"#2ba38f"};
-  const stats=[
+  const palette={scadute:"#e95757",fredde:"#f3c04b",sollecito:"#32a1f8",calde:"#2ba38f",altre:"#8492a6"};
+  const inferredOwners=data.ownerOptions||[...new Set((data.worklist||[]).map(row=>row.owner).filter(Boolean))];
+  const owners=[...new Set([...inferredOwners,...(state.priorityOwner?[state.priorityOwner]:[])])].sort((a,b)=>a.localeCompare(b,"it"));
+  qs("#owner-filter").innerHTML=`<option value="">Tutti gli owner</option>`+owners.map(owner=>`<option value="${escapeHtml(owner)}">${escapeHtml(owner)}</option>`).join("");
+  qs("#owner-filter").value=state.priorityOwner;
+  const ownerMatches=owner=>!state.priorityOwner||String(owner||"").trim().toLocaleLowerCase("it-IT")===state.priorityOwner.trim().toLocaleLowerCase("it-IT");
+  const details=(data.priorityDetails||[]).filter(row=>row.priorityEta.trim().toLowerCase()!=="confermata"&&ownerMatches(row.owner));
+  const sumEta=pattern=>details.filter(row=>pattern.test(row.priorityEta)).reduce((total,row)=>total+(Number(row.count)||0),0);
+  const stats=data.mode==="live"?[
+    {key:"scadute",label:"OFFERTE SCADUTE",value:sumEta(/^(creata da >30 giorni|scaduta)$/i),color:palette.scadute},
+    {key:"fredde",label:"OFFERTE FREDDE >20 GG",value:sumEta(/^creata da 21-30 giorni$/i),color:palette.fredde},
+    {key:"sollecito",label:"OFFERTE DA SOLLECITARE >10 GG",value:sumEta(/^creata da 11-20 giorni$/i),color:palette.sollecito},
+    {key:"calde",label:"OFFERTE CALDE <10 GG",value:sumEta(/^creata da 0-10 giorni$/i),color:palette.calde}
+  ]:[
     {key:"scadute",label:"OFFERTE SCADUTE",value:data.priorityCounts.scadute,color:palette.scadute},
     {key:"fredde",label:"OFFERTE FREDDE >20 GG",value:data.priorityCounts.fredde,color:palette.fredde},
     {key:"sollecito",label:"OFFERTE DA SOLLECITARE >10 GG",value:data.priorityCounts.sollecito,color:palette.sollecito},
     {key:"calde",label:"OFFERTE CALDE <10 GG",value:data.priorityCounts.calde,color:palette.calde}
   ];
   qs("#priority-kpis").innerHTML=stats.map(item=>`<div class="metric-block" data-cross-kind="category" data-cross-value="${item.key}" title="Filtra per priorità" style="--accent:${item.color};cursor:pointer"><span>${item.label}</span><strong>${number(item.value||0)}</strong><small></small></div>`).join("");
-  const list=(data.worklist||[]).slice(0,8);
-  qs("#worklist-rows").innerHTML=list.map(row=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(row.accountKey||row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td><span class="priority-tag" style="--priority:${palette[row.type]||"#32a1f8"}"><i></i>${escapeHtml(row.category)}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.apparatus||0)}</td><td><i class="status ${row.type==="calde"?"green":row.type==="fredde"?"orange":row.type==="scadute"?"red":"blue"}">${escapeHtml(row.state)}</i></td><td>${number(row.days||0)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("");
-  const max=Math.max(1,...stats.map(item=>Number(item.value)||0));
-  qs("#priority-chart").innerHTML=`<div class="priority-bars">${stats.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group" data-cross-kind="category" data-cross-value="${item.key}" title="Filtra per priorità" style="cursor:pointer"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${item.color}"></div></div><span class="priority-bar-label">${item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg"}</span></div>`}).join("")}</div>`;
+  const distribution=new Map();
+  for(const row of details){
+    const category=row.category||"Categoria vuota";
+    distribution.set(category,(distribution.get(category)||0)+(Number(row.count)||0));
+  }
+  const categoryOrder=["Scaduta","Fredda >20gg","Da Sollecitare","Calda <10gg","Categoria vuota"];
+  const bars=[...distribution.entries()].map(([category,value])=>({category,value,type:categoryKey(category)}))
+    .sort((a,b)=>{const ai=categoryOrder.findIndex(x=>x.toLowerCase()===a.category.toLowerCase()),bi=categoryOrder.findIndex(x=>x.toLowerCase()===b.category.toLowerCase());return (ai<0?categoryOrder.length:ai)-(bi<0?categoryOrder.length:bi)||a.category.localeCompare(b.category,"it")});
+  const list=(data.worklist||[]).filter(row=>row.priorityEta.toLowerCase()!=="confermata"&&ownerMatches(row.owner)).slice(0,8);
+  qs("#worklist-rows").innerHTML=list.map(row=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(row.accountKey||row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td><span class="priority-tag" style="--priority:${palette[row.type]||palette.altre}"><i></i>${escapeHtml(row.category||"—")}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.days||0)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("")||`<tr><td colspan="4">Nessuna offerta per i filtri selezionati</td></tr>`;
+  const max=Math.max(1,...bars.map(item=>Number(item.value)||0));
+  qs("#priority-chart").innerHTML=`<div class="priority-bars">${bars.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group" data-cross-kind="category" data-cross-value="${item.type}" title="Filtra per priorità" style="cursor:pointer"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${palette[item.type]||palette.altre}"></div></div><span class="priority-bar-label">${escapeHtml(item.category)}</span></div>`}).join("")}</div>`;
   const overdue=stats.find(item=>item.key==="scadute")?.value||0;
   qs("#priority-alert").textContent=`${number(overdue)} offerte scadute richiedono un intervento immediato`;
   qs("#priority-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
   const rules=[{name:"Rosso",desc:"Scadenza superata",color:palette.scadute},{name:"Giallo",desc:">20 giorni fermi",color:palette.fredde},{name:"Celeste",desc:">10 giorni, da sollecitare",color:palette.sollecito},{name:"Verde",desc:"<10 giorni",color:palette.calde}];
   qs("#priority-rules").innerHTML=`<b class="priority-rules-title">Regole semaforo</b>`+rules.map(rule=>`<div class="priority-rule" style="--priority:${rule.color}"><i></i><span><b>${rule.name}</b><small>${rule.desc}</small></span></div>`).join("");
 }
+
 function goPage(page){
   state.page=page; document.body.classList.toggle("atteso-mode",page==="atteso"); document.body.classList.toggle("pipeline-mode",page==="avanzamento"); document.body.classList.toggle("priority-mode",page==="priorita"); qs("#demo-notice").hidden=data.mode==="live"||page==="atteso"||page==="avanzamento"||page==="priorita"; qsa(".page-view").forEach(x=>x.classList.toggle("active",x.id===`page-${page}`)); qsa(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   const meta={panoramica:["01","Executive overview","La fotografia della campagna: target, conversione e valore."],atteso:["02","Atteso vs acquisito","Confronto tra i valori economici acquisiti e quelli attesi dalla campagna: quanto è stato fatto e quanto manca all’obiettivo."],avanzamento:["03","Avanzamento commerciale","Doppia lettura: conversione dei clienti e degli apparati."],priorita:["04","Priorità e attività","Una worklist giornaliera ordinata per urgenza commerciale."]}[page];
@@ -263,7 +306,7 @@ function showToast(message){const el=qs("#toast");el.textContent=message;el.clas
 function renderAll(){renderFilters();renderFunnel();renderPerimeters();renderClients();renderKpis();renderExpected();renderPipeline();renderPriorities()}
 function applyCrossfilters(){
   if(liveSourceData&&window.PowerBIConnector?.filterDashboard){
-    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:currentPerimeter(),...state.cross});
+    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:state.page==="panoramica"?"Totale":state.perimeter,...state.cross});
     renderAll();
     return;
   }
@@ -290,8 +333,10 @@ window.applyPowerBIData = liveData => {
 };
 renderAll();
 qsa(".nav-item").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.page)));
-qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;if(state.page==="panoramica")state.overviewPerimeter=b.dataset.perimeter;else state.perimeter=b.dataset.perimeter;applyCrossfilters();});
+qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;if(state.page==="panoramica"){state.overviewPerimeter=b.dataset.perimeter;state.overviewAxis=null;}else state.perimeter=b.dataset.perimeter;applyCrossfilters();});
 document.addEventListener("click",e=>{
+  const axis=e.target.closest("[data-overview-axis]");
+  if(axis){state.overviewAxis=state.overviewAxis===axis.dataset.overviewAxis?null:axis.dataset.overviewAxis;renderPerimeters();renderClients();return}
   const cross=e.target.closest("[data-cross-kind]");
   if(cross){setCrossFilter(cross.dataset.crossKind,cross.dataset.crossValue);return}
   const funnel=e.target.closest("[data-funnel-filter]");
@@ -299,6 +344,7 @@ document.addEventListener("click",e=>{
 });
 qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel()}));
 qs("#client-search").addEventListener("input",e=>{state.search=e.target.value;renderClients()});
+qs("#owner-filter").addEventListener("change",e=>{state.priorityOwner=e.target.value;renderPriorities()});
 qs("#table-more").addEventListener("click",()=>{state.showAll=!state.showAll;renderClients();showToast(state.showAll?"Tutti i clienti di esempio":"Vista sintetica")});
 
 qs("#connect-open").addEventListener("click",connectDialog);qs("#notice-connect").addEventListener("click",connectDialog);qs("#model-open").addEventListener("click",()=>qs("#model-dialog").showModal());

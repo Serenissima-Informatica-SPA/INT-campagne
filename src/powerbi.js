@@ -454,8 +454,8 @@ function filterDashboard(base, selection = {}) {
   let offers = base.raw.offers.filter(inPerimeter);
   let work = base.raw.work.filter(inPerimeter);
   if (selection.category) {
-    offers = offers.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
-    work = work.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
+    offers = offers.filter(row => categoryKey(label(row, "PrioritaEta") || label(row, "Categoria")) === selection.category);
+    work = work.filter(row => categoryKey(label(row, "PrioritaEta") || label(row, "Categoria")) === selection.category);
   }
   if (selection.status) {
     const stages = [

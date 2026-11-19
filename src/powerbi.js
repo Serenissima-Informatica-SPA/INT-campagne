@@ -179,6 +179,19 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
     { label: "Margine totale", acquired: acquiredMargin, expected: expectedMargin }
   ];
   const clientTable = clients.map(row => ({ name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "StimaHardwareEUR"), fee: num(row, "StimaServiziEUR") })).sort((a, b) => (b.hw + b.fee) - (a.hw + a.fee));
+  const contactedClients = new Set(workRows.map(row => label(row, "Cliente")).filter(Boolean)).size;
+  const negotiationCount = sum(offerRows.filter(row => /negozia|negotiat/i.test(label(row, "StatoOfferta"))), "ConteggioOfferte");
+  const commercialMetrics = [
+    { label: "CLIENTI TOTALI", value: totals.ClientiTarget, detail: "" },
+    { label: "CONTATTATI", value: contactedClients, detail: ratio(contactedClients, totals.ClientiTarget) },
+    { label: "CON OFFERTA", value: totals.ClientiConOfferta, detail: ratio(totals.ClientiConOfferta, totals.ClientiTarget) },
+    { label: "NEGOZIAZIONE", value: negotiationCount, detail: ratio(negotiationCount, totals.ClientiTarget) },
+    { label: "CONFERMATI", value: totals.ClientiVinti, detail: ratio(totals.ClientiVinti, totals.ClientiTarget) },
+    { label: "PERSI", value: clientLost, detail: ratio(clientLost, totals.ClientiTarget) }
+  ];
+  const commercialDetails = worklist.slice(0, 5).map(row => ({
+    client: row.client, owner: row.owner, apparatus: row.apparatus, state: row.state, date: "—", action: row.action
+  }));
   return {
     mode: "live",
     filterPerimeters: ["Totale", ...perimeters.map(row => label(row, "Perimetro"))],
@@ -200,6 +213,8 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
       acquiredMargin: num(row, "MargineTotaleVinteEUR")
     })),
     wonClients: totals.ClientiVinti,
+    commercialMetrics,
+    commercialDetails,
     clients: clientTable,
     expected,
     pipeline,

@@ -169,8 +169,18 @@ function renderExpected(){
     const totalClass=index===0||index===rows.length-1?' class="expected-total"':"";
     return `<tr${totalClass}><td>${escapeHtml(row.label)}</td><td>${euroInThousands(row.acquired)}</td><td>${euroInThousands(row.expected)}</td><td>${progress.toFixed(1).replace(".",",")}%</td><td>${missing?euroInThousands(missing):"—"}</td></tr>`;
   }).join("");
-  const maximum=Math.max(1,...rows.flatMap(row=>[Number(row.acquired)||0,Number(row.expected)||0]));
-  qs("#expected-chart").innerHTML=`<div class="expected-chart-area">${rows.map(row=>{
+  const chartRows=rows.map((row,index)=>{
+    const matches=(data.comparison||[]).filter(item=>String(item.label||"").trim().toLocaleLowerCase("it-IT")===String(row.label||"").trim().toLocaleLowerCase("it-IT"));
+    const acquiredSeries=matches.find(item=>/acquisito/i.test(item.type||""));
+    const expectedSeries=matches.find(item=>/atteso/i.test(item.type||""));
+    return {
+      label:expectedLabels[index]||row.label,
+      acquired:data.mode==="live"&&acquiredSeries?acquiredSeries.value:row.acquired,
+      expected:data.mode==="live"&&expectedSeries?expectedSeries.value:row.expected
+    };
+  });
+  const maximum=Math.max(1,...chartRows.flatMap(row=>[Number(row.acquired)||0,Number(row.expected)||0]));
+  qs("#expected-chart").innerHTML=`<div class="expected-chart-area">${chartRows.map(row=>{
     const progress=row.expected?row.acquired/row.expected*100:0;
     const acquiredHeight=row.acquired?Math.max(3,(row.acquired/maximum)*86):0;
     const expectedHeight=row.expected?Math.max(3,(row.expected/maximum)*86):0;

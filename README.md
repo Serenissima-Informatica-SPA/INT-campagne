@@ -23,7 +23,7 @@ Prima di attivare i dati live:
 4. Abilitare nel tenant Power BI l’impostazione `Dataset Execute Queries REST API`; chi accede deve avere permesso Read e Build sul semantic model.
 5. Dopo il deploy, aprire la dashboard e premere **Accedi e carica i dati**. Ogni utente accede con il proprio account Microsoft.
 
-L’app interroga `Clienti_Unificati` per perimetri, clienti, target e valori economici; interroga `Offerte_Unificate` per stato, categoria, quantità e worklist. Il modello collega entrambe le tabelle a `Clienti_Unificati`. La pagina Executive usa `ValoreVinteEUR`, `ValoreHardwareVinteEUR`, `ValoreServiziVinteEUR`, `CostoHardwareEUR` e le misure margine vinte. Atteso vs acquisito usa le stime HW/servizi, `ValoreVinteEUR`, `MargineTotaleVinteEUR` e le misure `MancRic*` e `MancMarg*` per gli importi mancanti.
+L’app interroga `Clienti_Unificati` per perimetri, clienti, target e valori economici; interroga `Offerte_Unificate` per stato, categoria, quantità e worklist. Il modello collega entrambe le tabelle a `Clienti_Unificati`. La pagina Executive usa `ValoreVinteEUR`, `ValoreHardwareVinteEUR`, `ValoreServiziVinteEUR`, `CostoHardwareEUR` e le misure margine vinte. Atteso vs acquisito usa le stime HW/servizi, `ValoreVinteEUR`, `MargineTotaleVinteEUR`, le misure `AvanzRic*`/`AvanzMarg*` per il progresso e `MancRic*`/`MancMarg*` per gli importi mancanti.
 
 Le selezioni di perimetro, cliente, stato pipeline e categoria priorità si propagano alle altre visualizzazioni; cliccare di nuovo la selezione la rimuove. La tabella `Matricole_Unificate` è presente e collegata a `Clienti_Unificati`, ma non viene interrogata direttamente dai visual attuali: i conteggi RT e le quantità provengono dagli aggregati di clienti e offerte.
 

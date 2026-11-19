@@ -18,18 +18,19 @@ SUMMARIZECOLUMNS(
   "Offerte", SUM('Clienti_Unificati'[Offerte]),
   "OfferteInCorso", SUM('Clienti_Unificati'[OfferteInCorso]),
   "OfferteVinte", SUM('Clienti_Unificati'[OfferteVinte]),
-  "StimaHardwareEUR", SUM('Clienti_Unificati'[StimaHardwareEUR]),
-  "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
-  "ValoreHardwareVinteEUR", SUM('Clienti_Unificati'[ValoreHardwareVinteEUR]),
-  "ValoreServiziVinteEUR", SUM('Clienti_Unificati'[ValoreServiziVinteEUR]),
-  "ValoreVinteEUR", SUM('Clienti_Unificati'[ValoreVinteEUR]),
-  "CostoHardwareEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
-  "MargineStimaHardwareEUR", SUM('Clienti_Unificati'[MargineStimaHardwareEUR]),
-  "MargineServiziStimaEUR", SUM('Clienti_Unificati'[MargineServiziStimaEUR]),
-  "MargineTotaleStima", SUM('Clienti_Unificati'[MargineTotaleStima]),
-  "MargineHardwareVinteEUR", SUM('Clienti_Unificati'[MargineHardwareVinteEUR]),
-  "MargineServiziVinteEUR", SUM('Clienti_Unificati'[MargineServiziVinteEUR]),
-  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR]),
+  "AttesoRicavoTotale", [AttesoRicavoTotale],
+  "AttesoRicavoHW", [AttesoRicavoHW],
+  "AttesoServizi", [AttesoServizi],
+  "AttesoMargineHW", [AttesoMargineHW],
+  "AttesoMargineServizi", [AttesoMargineServizi],
+  "AttesoMargineTotale", [AttesoMargineTotale],
+  "ValoreVinteEUR", [ValoreVinte],
+  "ValoreHardwareVinteEUR", [ValoreHardwareVinte],
+  "ValoreServiziVinteEUR", [ValoreServiziVinte],
+  "CostoHardwareVinteEUR", [CostoHardwareVinteEUR],
+  "MargineHardwareVinteEUR", [MargineHardwareVinte],
+  "MargineServiziVinteEUR", [MargineServiziVinte],
+  "MargineTotaleVinteEUR", [MargineTotaleVinte],
   "MancRicTotale", [MancRicTotale],
   "MancRicHW", [MancRicHW],
   "MancRicServizi", [MancRicServizi],
@@ -48,6 +49,7 @@ const clientsDax = `
 EVALUATE
 SUMMARIZECOLUMNS(
   'Clienti_Unificati'[Perimetro],
+  'Clienti_Unificati'[ChiaveAccount],
   'Clienti_Unificati'[Cliente],
   "ClientiTarget", SUM('Clienti_Unificati'[ClientiTarget]),
   "ClientiVinti", SUM('Clienti_Unificati'[ClientiVinti]),
@@ -60,28 +62,20 @@ SUMMARIZECOLUMNS(
   "OfferteVinte", SUM('Clienti_Unificati'[OfferteVinte]),
   "StimaHardwareEUR", SUM('Clienti_Unificati'[StimaHardwareEUR]),
   "StimaServiziEUR", SUM('Clienti_Unificati'[StimaServiziEUR]),
-  "ValoreHardwareVinteEUR", SUM('Clienti_Unificati'[ValoreHardwareVinteEUR]),
-  "ValoreServiziVinteEUR", SUM('Clienti_Unificati'[ValoreServiziVinteEUR]),
-  "ValoreVinteEUR", SUM('Clienti_Unificati'[ValoreVinteEUR]),
-  "CostoHardwareEUR", SUM('Clienti_Unificati'[CostoHardwareEUR]),
-  "MargineStimaHardwareEUR", SUM('Clienti_Unificati'[MargineStimaHardwareEUR]),
-  "MargineServiziStimaEUR", SUM('Clienti_Unificati'[MargineServiziStimaEUR]),
-  "MargineTotaleStima", SUM('Clienti_Unificati'[MargineTotaleStima]),
-  "MargineHardwareVinteEUR", SUM('Clienti_Unificati'[MargineHardwareVinteEUR]),
-  "MargineServiziVinteEUR", SUM('Clienti_Unificati'[MargineServiziVinteEUR]),
-  "MargineTotaleVinteEUR", SUM('Clienti_Unificati'[MargineTotaleVinteEUR]),
-  "MancRicTotale", [MancRicTotale],
-  "MancRicHW", [MancRicHW],
-  "MancRicServizi", [MancRicServizi],
-  "MancMargHW", [MancMargHW],
-  "MancMargServizi", [MancMargServizi],
-  "MancMargTotale", [MancMargTotale]
+  "ValoreVinteEUR", [ValoreVinte],
+  "ValoreHardwareVinteEUR", [ValoreHardwareVinte],
+  "ValoreServiziVinteEUR", [ValoreServiziVinte],
+  "CostoHardwareVinteEUR", [CostoHardwareVinteEUR],
+  "MargineHardwareVinteEUR", [MargineHardwareVinte],
+  "MargineServiziVinteEUR", [MargineServiziVinte],
+  "MargineTotaleVinteEUR", [MargineTotaleVinte]
 )`;
 
 const offersSummaryDax = `
 EVALUATE
 SUMMARIZECOLUMNS(
   'Clienti_Unificati'[Perimetro],
+  'Offerte_Unificate'[ChiaveAccount],
   'Offerte_Unificate'[Cliente],
   'Offerte_Unificate'[StatoOfferta],
   'Offerte_Unificate'[Categoria],
@@ -94,6 +88,7 @@ EVALUATE
 VAR Worklist =
   SUMMARIZECOLUMNS(
     'Clienti_Unificati'[Perimetro],
+    'Offerte_Unificate'[ChiaveAccount],
     'Offerte_Unificate'[Cliente],
     'Offerte_Unificate'[StatoOfferta],
     'Offerte_Unificate'[Categoria],
@@ -103,6 +98,30 @@ VAR Worklist =
     "ConteggioOfferte", COUNT('Offerte_Unificate'[StatoOfferta])
   )
 RETURN TOPN(250, Worklist, [GiorniDaCreazione], DESC)`;
+
+const expectedRowsDax = `
+EVALUATE
+SUMMARIZECOLUMNS(
+  'Clienti_Unificati'[Perimetro],
+  'Clienti_Unificati'[ChiaveAccount],
+  'MisuraDinamica'[ID],
+  'MisuraDinamica'[Voce],
+  "Acquisito", [Acquisito_tab],
+  "Atteso", [Atteso_tab],
+  "Avanzamento", [Avanzamento_tab],
+  "Mancante", [Mancante_tab]
+)`;
+
+const comparisonDax = `
+EVALUATE
+SUMMARIZECOLUMNS(
+  'Clienti_Unificati'[Perimetro],
+  'Clienti_Unificati'[ChiaveAccount],
+  'MisuraDinamica'[IDgr],
+  'MisuraDinamica'[Voce],
+  'MisuraDinamica'[Tipo],
+  "Confronto", [Confronto]
+)`;
 
 function configured() {
   return Boolean(settings.clientId && settings.datasetId && settings.workspaceId);

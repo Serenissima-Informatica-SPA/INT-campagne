@@ -25,11 +25,11 @@ const demo = {
     { name: "The Special Four", completed: null, target: null, color: "#39a0ec" }
   ],
   clients: [
-    { name: "Cliente dimostrativo A", count: 98, hw: 89000, fee: 40000 },
-    { name: "Cliente dimostrativo B", count: 49, hw: 44000, fee: 20000 },
-    { name: "Cliente dimostrativo C", count: 31, hw: 28000, fee: 13000 },
-    { name: "Cliente dimostrativo D", count: 86, hw: 78000, fee: 35000 },
-    { name: "Cliente dimostrativo E", count: 29, hw: 26000, fee: 12000 }
+    { name: "Cliente dimostrativo A", count: 98, hw: 89000, fee: 40000, total: 129000 },
+    { name: "Cliente dimostrativo B", count: 49, hw: 44000, fee: 20000, total: 64000 },
+    { name: "Cliente dimostrativo C", count: 31, hw: 28000, fee: 13000, total: 41000 },
+    { name: "Cliente dimostrativo D", count: 86, hw: 78000, fee: 35000, total: 113000 },
+    { name: "Cliente dimostrativo E", count: 29, hw: 26000, fee: 12000, total: 38000 }
   ],
   expected: [
     { label: "Ricavo totale", acquired: 385000, expected: 1138000 },
@@ -75,7 +75,7 @@ const demo = {
 let data = demo;
 let liveSourceData = null;
 
-const state = { page: "panoramica", perimeter: "Totale", funnel: "apparati", search: "", priority: "tutte", showAll: false, cross: { category: null, status: null, client: null } };
+const state = { page: "panoramica", perimeter: "Totale", overviewPerimeter: "Totale", funnel: "apparati", search: "", priority: "tutte", showAll: false, cross: { category: null, status: null, client: null } };
 const qs = (s, root=document) => root.querySelector(s);
 const qsa = (s, root=document) => [...root.querySelectorAll(s)];
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -83,10 +83,12 @@ const money = n => new Intl.NumberFormat("it-IT", { style:"currency", currency:"
 const compact = n => n === 0 ? "€0" : n < 1000 ? money(n) : n >= 1_000_000 ? `€${(n/1_000_000).toLocaleString("it-IT",{maximumFractionDigits:2})}M` : `€${(n/1_000).toLocaleString("it-IT",{maximumFractionDigits:0})}k`;
 const number = n => new Intl.NumberFormat("it-IT").format(n);
 
+function currentPerimeter(){return state.page==="panoramica"?state.overviewPerimeter:state.perimeter}
 function renderFilters(){
-  qs("#perimeter-filters").innerHTML = data.filterPerimeters.map(p=>`<button class="filter-pill ${state.perimeter===p?"active":""}" data-perimeter="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join("");
+  const selected=currentPerimeter();
+  qs("#perimeter-filters").innerHTML = data.filterPerimeters.map(p=>`<button class="filter-pill ${selected===p?"active":""}" data-perimeter="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join("");
 }
-function filteredPerimeters(){return state.perimeter==="Totale"?data.filterPerimeters.slice(1):data.filterPerimeters.slice(1).filter(x=>x===state.perimeter)}
+function filteredPerimeters(){const selected=currentPerimeter();return selected==="Totale"?data.filterPerimeters.slice(1):data.filterPerimeters.slice(1).filter(x=>x===selected)}
 function renderFunnel(){
   const key=state.funnel; const max=Math.max(...data.funnel.map(x=>x[key]));
   qs("#funnel-title").textContent=key==="apparati"?"Funnel apparati":"Funnel clienti";
@@ -102,9 +104,9 @@ function renderPerimeters(){
 function renderClients(){
   const visible=data.clients.filter(x=>x.name.toLowerCase().includes(state.search.toLowerCase()));
   const rows=state.showAll?visible:visible.slice(0,5); qs("#row-count").textContent=`${visible.length} clienti`;
-  qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.key||x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.hw+x.fee)}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
-  const total=data.clients.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee}),{count:0,hw:0,fee:0});
-  qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.hw+total.fee)}</td></tr>`;
+  qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.key||x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.total??(x.hw+x.fee))}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
+  const total=data.clients.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee,total:a.total+(x.total??(x.hw+x.fee))}),{count:0,hw:0,fee:0,total:0});
+  qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.total)}</td></tr>`;
 }
 function renderKpis(){qs("#kpi-strip").innerHTML=data.economics.map(x=>`<article class="kpi-card" style="--kpi-color:${x.color}"><span class="kpi-label">${x.label.toUpperCase()}</span><strong class="kpi-value">${compact(x.value)}</strong><span class="kpi-detail">${x.detail}</span></article>`).join("")}
 const expectedLabels=["Ricavo totale","Ricavo HW","Ricavo Servizi (Fee)","Margine HW","Margine Servizi","Margine totale"];
@@ -253,6 +255,7 @@ function goPage(page){
   state.page=page; document.body.classList.toggle("atteso-mode",page==="atteso"); document.body.classList.toggle("pipeline-mode",page==="avanzamento"); document.body.classList.toggle("priority-mode",page==="priorita"); qs("#demo-notice").hidden=data.mode==="live"||page==="atteso"||page==="avanzamento"||page==="priorita"; qsa(".page-view").forEach(x=>x.classList.toggle("active",x.id===`page-${page}`)); qsa(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   const meta={panoramica:["01","Executive overview","La fotografia della campagna: target, conversione e valore."],atteso:["02","Atteso vs acquisito","Confronto tra i valori economici acquisiti e quelli attesi dalla campagna: quanto è stato fatto e quanto manca all’obiettivo."],avanzamento:["03","Avanzamento commerciale","Doppia lettura: conversione dei clienti e degli apparati."],priorita:["04","Priorità e attività","Una worklist giornaliera ordinata per urgenza commerciale."]}[page];
   qs("#section-number").textContent=meta[0];qs("#page-title").textContent=meta[1];qs("#page-subtitle").textContent=meta[2];
+  applyCrossfilters();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function connectDialog(){qs("#connect-dialog").showModal()}
@@ -260,7 +263,7 @@ function showToast(message){const el=qs("#toast");el.textContent=message;el.clas
 function renderAll(){renderFilters();renderFunnel();renderPerimeters();renderClients();renderKpis();renderExpected();renderPipeline();renderPriorities()}
 function applyCrossfilters(){
   if(liveSourceData&&window.PowerBIConnector?.filterDashboard){
-    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:state.perimeter,...state.cross});
+    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:currentPerimeter(),...state.cross});
     renderAll();
     return;
   }
@@ -287,7 +290,7 @@ window.applyPowerBIData = liveData => {
 };
 renderAll();
 qsa(".nav-item").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.page)));
-qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;state.perimeter=b.dataset.perimeter;applyCrossfilters();});
+qs("#perimeter-filters").addEventListener("click",e=>{const b=e.target.closest("[data-perimeter]");if(!b)return;if(state.page==="panoramica")state.overviewPerimeter=b.dataset.perimeter;else state.perimeter=b.dataset.perimeter;applyCrossfilters();});
 document.addEventListener("click",e=>{
   const cross=e.target.closest("[data-cross-kind]");
   if(cross){setCrossFilter(cross.dataset.crossKind,cross.dataset.crossValue);return}

@@ -253,3 +253,5 @@ body.priority-mode .priority-alert{margin:auto 5px 24px;padding:0 8px;text-align
  body.priority-mode .priority-bars{gap:7px;padding:0 3px}
  body.priority-mode .priority-alert{font-size:15px}
 }
+
+body.pipeline-mode .demo-notice,body.priority-mode .demo-notice{display:none}

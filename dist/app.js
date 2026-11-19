@@ -147,8 +147,8 @@ function renderExpected(){
   qs("#expected-rows").innerHTML=rows.map((row,index)=>{
     const progress=row.expected?row.acquired/row.expected*100:0;
     const missing=Math.max(0,row.expected-row.acquired);
-    const totalClass=index===0||index===rows.length-1?" class="expected-total"":"";
-    return `<tr${totalClass}><td>${row.label}</td><td>${euroInThousands(row.acquired)}</td><td>${euroInThousands(row.expected)}</td><td>${progress.toFixed(1).replace(".",",")}%</td><td>${missing?euroInThousands(missing):"—"}</td></tr>`;
+    const totalClass=index===0||index===rows.length-1?' class="expected-total"':"";
+    return `<tr${totalClass}><td>${escapeHtml(row.label)}</td><td>${euroInThousands(row.acquired)}</td><td>${euroInThousands(row.expected)}</td><td>${progress.toFixed(1).replace(".",",")}%</td><td>${missing?euroInThousands(missing):"—"}</td></tr>`;
   }).join("");
   const maximum=Math.max(1,...rows.flatMap(row=>[Number(row.acquired)||0,Number(row.expected)||0]));
   qs("#expected-chart").innerHTML=`<div class="expected-chart-area">${rows.map(row=>{
@@ -156,8 +156,9 @@ function renderExpected(){
     const acquiredHeight=row.acquired?Math.max(3,(row.acquired/maximum)*86):0;
     const expectedHeight=row.expected?Math.max(3,(row.expected/maximum)*86):0;
     const bar=(value,height,type)=>`<div class="expected-bar-column ${type}" style="--bar-height:${height}%"><span class="expected-bar-value">${euroInThousands(value)}</span><div class="expected-bar">${type==="acquired"&&height>=12?`<span class="expected-bar-percent">${progress.toFixed(1).replace(".",",")}%</span>`:""}</div></div>`;
-    return `<div class="expected-chart-group"><div class="expected-chart-bars">${bar(row.acquired,acquiredHeight,"acquired")}${bar(row.expected,expectedHeight,"expected")}</div><span class="expected-chart-label">${row.label}</span></div>`;
+    return `<div class="expected-chart-group"><div class="expected-chart-bars">${bar(row.acquired,acquiredHeight,"acquired")}${bar(row.expected,expectedHeight,"expected")}</div><span class="expected-chart-label">${escapeHtml(row.label)}</span></div>`;
   }).join("")}</div><div class="expected-chart-legend"><span><i class="expected-swatch acquired"></i>Acquisito</span><span><i class="expected-swatch expected"></i>Atteso campagna</span></div>`;
+  qs("#atteso-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
   qs("#expected-note").textContent=data.mode==="live"?"Valori dal modello semantico Power BI · Bergamo e GDO esclusi.":"Atteso totale da baseline campagna. Atteso HW/Servizi: stima con la stessa ripartizione dell’acquisito (68,8% / 31,2%). Dati esemplificativi.";
 }
 function renderPipeline(){

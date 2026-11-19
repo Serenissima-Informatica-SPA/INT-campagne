@@ -105,3 +105,51 @@ td{padding:10px 9px}
   .compare-row{grid-template-columns:83px 1fr 60px}
   .mini-row{grid-template-columns:1.15fr .6fr 1fr .9fr;gap:5px}
 }
+
+
+/* Atteso vs acquisito: slide-aligned comparison table and grouped columns. */
+body.atteso-mode .demo-notice{display:none}
+body.atteso-mode .main-area{border-top:8px solid var(--orange)}
+body.atteso-mode .page-heading{padding-top:31px}
+body.atteso-mode .expected-layout{display:grid;grid-template-columns:1.03fr 1fr;gap:22px;align-items:stretch}
+body.atteso-mode .metric-band{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:22px}
+body.atteso-mode .metric-block{min-height:108px;border-radius:12px;padding:17px 18px 15px;box-shadow:0 5px 12px rgba(28,47,75,.045)}
+body.atteso-mode .metric-block:before{top:0;bottom:0;width:6px;border-radius:0}
+body.atteso-mode .metric-block span{font-size:10px;letter-spacing:.035em;color:#687588}
+body.atteso-mode .metric-block strong{font-size:29px;line-height:1.1;margin:10px 0 4px}
+body.atteso-mode .metric-block small{font-size:10px}
+body.atteso-mode .expected-layout .panel{min-height:448px;border-radius:50px;padding:22px 23px 18px}
+body.atteso-mode .expected-layout .panel-heading{margin:0 0 17px}
+body.atteso-mode .expected-layout .panel-heading h2{font-size:16px}
+body.atteso-mode .expected-table-scroll{width:100%;overflow-x:auto}
+.expected-table{width:100%;min-width:540px;table-layout:fixed;border-collapse:collapse;font-size:12px}
+.expected-table th{font-size:11px;padding:14px 9px;text-align:right}
+.expected-table th:first-child{width:31%;text-align:left}
+.expected-table td{padding:13px 9px;font-size:11px}
+.expected-table td:first-child{white-space:normal;max-width:none}
+.expected-table td:not(:first-child){white-space:nowrap}
+.expected-table tbody tr{height:46px}
+.expected-table .expected-total td{font-weight:800;color:#253449}
+.expected-table .expected-total:first-child td{border-top:1px solid #d9e0e8}
+.expected-note{margin:22px 4px 0;color:#6e7888;font-size:10px;font-style:italic;line-height:1.45}
+.expected-chart-panel{display:flex;flex-direction:column}
+.expected-chart-panel .panel-heading{margin-bottom:8px!important}
+.expected-chart-area{height:326px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:6px 8px 0}
+.expected-chart-group{min-width:0;height:100%;display:grid;grid-template-rows:minmax(0,1fr) 43px}
+.expected-chart-bars{min-width:0;height:100%;display:flex;align-items:stretch;justify-content:center;gap:5px;border-bottom:1px solid #cbd4df}
+.expected-bar-column{position:relative;flex:1;max-width:43px;min-width:0;height:100%;--bar-height:0%;display:flex;align-items:flex-end}
+.expected-bar{position:absolute;left:0;right:0;bottom:0;height:var(--bar-height);min-height:0;background:#c9d1db;display:flex;align-items:flex-end;justify-content:center;transition:height .25s ease}
+.expected-bar-column.acquired .expected-bar{background:#2774c8}
+.expected-bar-value{position:absolute;left:50%;bottom:calc(var(--bar-height) + 6px);transform:translateX(-50%);font-size:10px;line-height:1.15;font-weight:800;color:#26364b;white-space:nowrap}
+.expected-bar-percent{position:relative;margin-bottom:7px;color:#fff;font-size:9px;line-height:1;font-weight:800;white-space:nowrap}
+.expected-chart-label{align-self:start;padding-top:8px;text-align:center;font-size:10px;line-height:1.2;color:#222;overflow-wrap:anywhere}
+.expected-chart-legend{display:flex;justify-content:center;gap:19px;margin-top:7px;font-size:11px;color:#303a47}
+.expected-chart-legend span{display:flex;align-items:center;gap:5px}
+.expected-swatch{width:8px;height:8px;display:inline-block}
+.expected-swatch.acquired{background:#2774c8}
+.expected-swatch.expected{background:#c9d1db}
+.expected-footer{display:flex;justify-content:space-between;align-items:center;margin:22px 4px 0;color:#9ba5b4;font-size:9px}
+body.atteso-mode .page-heading:after{content:"Bergamo e GDO esclusi dal modello";position:absolute;right:2px;top:4px;font-size:10px;color:#8c96a5}
+@media(max-width:1250px){body.atteso-mode .expected-layout{grid-template-columns:1.03fr 1fr;gap:16px}body.atteso-mode .metric-band{gap:10px}.expected-table{min-width:510px}}
+@media(max-width:850px){body.atteso-mode .expected-layout{grid-template-columns:1fr}body.atteso-mode .metric-band{grid-template-columns:repeat(2,minmax(0,1fr))}.expected-chart-area{min-width:610px}.expected-chart-panel{overflow:hidden}.expected-layout .panel{min-height:0!important}}
+@media(max-width:430px){body.atteso-mode .main-area{padding-left:14px;padding-right:14px}body.atteso-mode .page-heading:after{right:0;font-size:9px}.expected-chart-area{min-width:580px}.expected-table{min-width:500px}.expected-note{font-size:9px}}

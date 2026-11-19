@@ -87,11 +87,12 @@
       </section>
 
       <section id="page-priorita" class="page-view" aria-label="Priorità e attività">
+        <div class="priority-owner-filter"><label for="owner-filter">OWNER</label><select id="owner-filter"><option value="">Tutti gli owner</option></select></div>
         <div class="priority-kpis" id="priority-kpis"></div>
         <div class="analysis-grid priority-grid">
           <article class="panel worklist-panel">
             <div class="panel-heading"><div><h2>Worklist prioritaria</h2></div></div>
-            <div class="worklist-scroll"><table class="worklist-table"><thead><tr><th>Categoria</th><th>Cliente</th><th>App.</th><th>Stato</th><th>Giorni fermi</th><th>Prossima azione</th><th>Owner</th></tr></thead><tbody id="worklist-rows"></tbody></table></div>
+            <div class="worklist-scroll"><table class="worklist-table"><thead><tr><th>Categoria</th><th>Cliente</th><th>Giorni da creazione</th><th>Owner</th></tr></thead><tbody id="worklist-rows"></tbody></table></div>
             <div id="priority-rules" class="priority-rules-inline"></div>
           </article>
           <article class="panel priority-distribution">

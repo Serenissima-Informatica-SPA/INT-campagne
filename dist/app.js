@@ -119,7 +119,7 @@ function renderPerimeters(){
     const rows=data.perimeters.filter(x=>filteredPerimeters().includes(x.name));
     qs("#perimeter-chart").innerHTML=rows.map(x=>{const value=x.target?x.completed/x.target*100:0;return `<div class="perimeter-row"><span class="perimeter-name">${escapeHtml(x.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(value,0.6)}%;background:${x.color}">${value>=18?`${value.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${x.target?`${x.completed} / ${x.target}`:"n.d."}</span></div>`}).join("");
   }
-  const total=data.economics[1].value+data.economics[2].value; const conv=total?Math.round(data.funnel[3].apparati/data.funnel[0].apparati*1000)/10:0;
+  const won=Number(data.totals?.ClientiVinti??data.funnel[3].clienti)||0; const target=Number(data.totals?.ClientiTarget??data.funnel[0].clienti)||0; const conv=target?Math.round(won/target*1000)/10:0;
   qs("#conversion-value").textContent=`${conv.toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
   qs("#conversion-donut").style.setProperty("--progress",`${conv}%`);
 }
@@ -322,7 +322,7 @@ function showToast(message){const el=qs("#toast");el.textContent=message;el.clas
 function renderAll(){renderFilters();renderFunnel();renderPerimeters();renderClients();renderKpis();renderExpected();renderPipeline();renderPriorities()}
 function applyCrossfilters(){
   if(liveSourceData&&window.PowerBIConnector?.filterDashboard){
-    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:state.page==="panoramica"?"Totale":state.perimeter,...state.cross});
+    data=window.PowerBIConnector.filterDashboard(liveSourceData,{perimeter:state.page==="panoramica"?state.overviewPerimeter:state.perimeter,...state.cross});
     renderAll();
     return;
   }
@@ -368,7 +368,7 @@ qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-priority-pbip-20261119"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-kpi-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

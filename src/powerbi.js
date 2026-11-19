@@ -261,7 +261,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     { key: "revenue", label: "Ricavo totale acquisito", value: acquiredRevenue, detail: ratio(acquiredRevenue, expectedRevenue), color: "#19365f" },
     { key: "hw", label: "Ricavo HW acquisito", value: totals.ValoreHardwareVinteEUR, detail: ratio(totals.ValoreHardwareVinteEUR, acquiredRevenue), color: "#2774c8" },
     { key: "fee", label: "Servizi acquisiti", value: totals.ValoreServiziVinteEUR, detail: ratio(totals.ValoreServiziVinteEUR, acquiredRevenue), color: "#39a0ec" },
-    { key: "cost", label: "Costo HW stimato", value: totals.CostoHardwareVinteEUR, detail: "dal modello Power BI", color: "#f28a27" },
+    { key: "cost", label: "Costo HW stimato", value: totals.CostoHardwareVinteEUR, detail: totals.CostoHardwareVinteEUR > 0 ? ratio(totals.CostoHardwareVinteEUR, totals.ValoreHardwareVinteEUR) : totals.CostoHardwareColonnaEUR > 0 ? "Costi presenti, nessuno sulle vinte" : "Nessun costo valorizzato nel modello", color: "#f28a27" },
     { key: "hwMargin", label: "Margine HW acquisito", value: totals.MargineHardwareVinteEUR, detail: ratio(totals.MargineHardwareVinteEUR, totals.ValoreHardwareVinteEUR), color: "#2da38f" },
     { key: "feeMargin", label: "Margine servizi", value: totals.MargineServiziVinteEUR, detail: "dal modello Power BI", color: "#7954da" },
     { key: "margin", label: "Margine totale acquisito", value: acquiredMargin, detail: ratio(acquiredMargin, acquiredRevenue), color: "#21836b" }

@@ -139,20 +139,21 @@ function expectedRowsForSelection(){
   const expectedHardware=sum("expectedHardware"),acquiredHardware=sum("acquiredHardware");
   const expectedServices=sum("expectedServices"),acquiredServices=sum("acquiredServices");
   const missing=(key,acquired,expected)=>data.mode==="live"?sum(key):Math.max(0,expected-acquired);
+  const progress=(key,acquired,expected)=>data.mode==="live"&&selected.length===1&&Number.isFinite(Number(selected[0][key]))?Number(selected[0][key]):(expected?acquired/expected*100:0);
   return [
-    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:data.mode==="live"?sum("acquiredRevenue"):acquiredHardware+acquiredServices,missing:missing("missingRevenue",acquiredHardware+acquiredServices,expectedHardware+expectedServices)},
-    {label:expectedLabels[1],expected:expectedHardware,acquired:acquiredHardware,missing:missing("missingHardwareRevenue",acquiredHardware,expectedHardware)},
-    {label:expectedLabels[2],expected:expectedServices,acquired:acquiredServices,missing:missing("missingServicesRevenue",acquiredServices,expectedServices)},
-    {label:expectedLabels[3],expected:sum("expectedHardwareMargin"),acquired:sum("acquiredHardwareMargin"),missing:missing("missingHardwareMargin",sum("acquiredHardwareMargin"),sum("expectedHardwareMargin"))},
-    {label:expectedLabels[4],expected:sum("expectedServicesMargin"),acquired:sum("acquiredServicesMargin"),missing:missing("missingServicesMargin",sum("acquiredServicesMargin"),sum("expectedServicesMargin"))},
-    {label:expectedLabels[5],expected:sum("expectedMargin"),acquired:sum("acquiredMargin"),missing:missing("missingMargin",sum("acquiredMargin"),sum("expectedMargin"))}
+    {label:expectedLabels[0],expected:expectedHardware+expectedServices,acquired:data.mode==="live"?sum("acquiredRevenue"):acquiredHardware+acquiredServices,missing:missing("missingRevenue",acquiredHardware+acquiredServices,expectedHardware+expectedServices),progress:progress("progressRevenue",acquiredHardware+acquiredServices,expectedHardware+expectedServices)},
+    {label:expectedLabels[1],expected:expectedHardware,acquired:acquiredHardware,missing:missing("missingHardwareRevenue",acquiredHardware,expectedHardware),progress:progress("progressHardware",acquiredHardware,expectedHardware)},
+    {label:expectedLabels[2],expected:expectedServices,acquired:acquiredServices,missing:missing("missingServicesRevenue",acquiredServices,expectedServices),progress:progress("progressServices",acquiredServices,expectedServices)},
+    {label:expectedLabels[3],expected:sum("expectedHardwareMargin"),acquired:sum("acquiredHardwareMargin"),missing:missing("missingHardwareMargin",sum("acquiredHardwareMargin"),sum("expectedHardwareMargin")),progress:progress("progressHardwareMargin",sum("acquiredHardwareMargin"),sum("expectedHardwareMargin"))},
+    {label:expectedLabels[4],expected:sum("expectedServicesMargin"),acquired:sum("acquiredServicesMargin"),missing:missing("missingServicesMargin",sum("acquiredServicesMargin"),sum("expectedServicesMargin")),progress:progress("progressServicesMargin",sum("acquiredServicesMargin"),sum("expectedServicesMargin"))},
+    {label:expectedLabels[5],expected:sum("expectedMargin"),acquired:sum("acquiredMargin"),missing:missing("missingMargin",sum("acquiredMargin"),sum("expectedMargin")),progress:progress("progressMargin",sum("acquiredMargin"),sum("expectedMargin"))}
   ];
 }
 function renderExpected(){
   const rows=expectedRowsForSelection();
   const revenue=rows[0],margin=rows[5];
-  const revenuePct=revenue.expected?revenue.acquired/revenue.expected*100:0;
-  const marginPct=margin.expected?margin.acquired/margin.expected*100:0;
+  const revenuePct=revenue.progress??(revenue.expected?revenue.acquired/revenue.expected*100:0);
+  const marginPct=margin.progress??(margin.expected?margin.acquired/margin.expected*100:0);
   const top=[
     {label:"Ricavi attesi",value:revenue.expected,detail:"baseline campagna",color:"#19365f"},
     {label:"Ricavi acquisiti",value:revenue.acquired,detail:`${revenuePct.toFixed(1).replace(".",",")}% dell’atteso`,color:"#2774c8"},
@@ -162,7 +163,7 @@ function renderExpected(){
   ];
   qs("#atteso-metrics").innerHTML=top.map(item=>`<div class="metric-block" style="--accent:${item.color}"><span>${item.label.toUpperCase()}</span><strong>${expectedKpiAmount(item.value)}</strong><small>${item.detail}</small></div>`).join("");
   qs("#expected-rows").innerHTML=rows.map((row,index)=>{
-    const progress=row.expected?row.acquired/row.expected*100:0;
+    const progress=row.progress??(row.expected?row.acquired/row.expected*100:0);
     const missing=Math.max(0,row.missing??(row.expected-row.acquired));
     const totalClass=index===0||index===rows.length-1?' class="expected-total"':"";
     return `<tr${totalClass}><td>${escapeHtml(row.label)}</td><td>${euroInThousands(row.acquired)}</td><td>${euroInThousands(row.expected)}</td><td>${progress.toFixed(1).replace(".",",")}%</td><td>${missing?euroInThousands(missing):"—"}</td></tr>`;

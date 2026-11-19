@@ -102,7 +102,7 @@ function renderPerimeters(){
 function renderClients(){
   const visible=data.clients.filter(x=>x.name.toLowerCase().includes(state.search.toLowerCase()));
   const rows=state.showAll?visible:visible.slice(0,5); qs("#row-count").textContent=`${visible.length} clienti`;
-  qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.hw+x.fee)}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
+  qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.key||x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.hw+x.fee)}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
   const total=data.clients.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee}),{count:0,hw:0,fee:0});
   qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.hw+total.fee)}</td></tr>`;
 }
@@ -111,6 +111,7 @@ const expectedLabels=["Ricavo totale","Ricavo HW","Ricavo Servizi (Fee)","Margin
 const euroInThousands = value => `€${Math.round((Number(value)||0)/1000).toLocaleString("it-IT")}k`;
 const expectedKpiAmount = value => Number(value)>=1_000_000 ? `€${(Number(value)/1_000_000).toLocaleString("it-IT",{minimumFractionDigits:3,maximumFractionDigits:3})}M` : euroInThousands(value);
 function expectedRowsForSelection(){
+  if(data.mode==="live") return data.expected.map((row,index)=>({...row,label:expectedLabels[index]||row.label}));
   if(state.perimeter==="Totale") return data.expected.map((row,index)=>({...row,label:expectedLabels[index]||row.label}));
   let source=data.perimeterEconomics||[];
   if(!source.length&&data.mode==="demo"){
@@ -204,7 +205,7 @@ function renderPipeline(){
     ];
     stages=definitions.map(([label,pattern])=>{
       const matches=(data.worklist||[]).filter(row=>pattern.test(normalize(row.state)));
-      return {label,count:new Set(matches.map(row=>row.client)).size,apparatus:matches.reduce((sum,row)=>sum+(Number(row.apparatus)||0),0)};
+      return {label,count:new Set(matches.map(row=>row.accountKey||row.client)).size,apparatus:matches.reduce((sum,row)=>sum+(Number(row.apparatus)||0),0)};
     });
   }
   const max=Math.max(1,...stages.flatMap(row=>[Number(row.count)||0,Number(row.apparatus)||0]));
@@ -214,7 +215,7 @@ function renderPipeline(){
     return `<div class="pipeline-stage" data-cross-kind="status" data-cross-value="${escapeHtml(row.label)}" title="Filtra per stato" style="cursor:pointer"><span class="pipeline-stage-label">${escapeHtml(row.label)}</span><div class="pipeline-stage-bars"><span class="pipeline-stage-bar clients" style="width:${clientsWidth}%"></span><span class="pipeline-stage-bar apparatus" style="width:${apparatusWidth}%"></span></div></div>`;
   }).join("");
   const details=data.commercialDetails||(data.worklist||[]).slice(0,5).map(row=>({client:row.client,owner:row.owner,apparatus:row.apparatus,state:row.state,date:"—",action:row.action}));
-  qs("#pipeline-table").innerHTML=`<div class="commercial-row commercial-header"><span>CLIENTE</span><span>OWNER</span><span>APP.</span><span>STATO</span><span>DATA</span><span>PROSSIMA AZIONE</span></div>`+details.slice(0,5).map(row=>`<div class="commercial-row" data-cross-kind="client" data-cross-value="${escapeHtml(row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><span>${escapeHtml(row.client)}</span><span>${escapeHtml(row.owner)}</span><span>${number(row.apparatus||0)}</span><span>${escapeHtml(row.state)}</span><span>${escapeHtml(row.date||"—")}</span><span>${escapeHtml(row.action)}</span></div>`).join("");
+  qs("#pipeline-table").innerHTML=`<div class="commercial-row commercial-header"><span>CLIENTE</span><span>OWNER</span><span>APP.</span><span>STATO</span><span>DATA</span><span>PROSSIMA AZIONE</span></div>`+details.slice(0,5).map(row=>`<div class="commercial-row" data-cross-kind="client" data-cross-value="${escapeHtml(row.accountKey||row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><span>${escapeHtml(row.client)}</span><span>${escapeHtml(row.owner)}</span><span>${number(row.apparatus||0)}</span><span>${escapeHtml(row.state)}</span><span>${escapeHtml(row.date||"—")}</span><span>${escapeHtml(row.action)}</span></div>`).join("");
   const insight=data.mode==="live"?"Dettaglio operativo estratto dalle offerte nel modello semantico.":"Insight: 48 clienti trattati rappresentano 190 apparati: il KPI clienti da solo sottostima il peso delle opportunità.";
   qs("#pipeline-insight").textContent=insight;
   qs("#pipeline-footer-status").textContent=data.mode==="live"?"Dati dal modello Power BI":"Demo visuale con dati esemplificativi";
@@ -229,7 +230,7 @@ function renderPriorities(){
   ];
   qs("#priority-kpis").innerHTML=stats.map(item=>`<div class="metric-block" data-cross-kind="category" data-cross-value="${item.key}" title="Filtra per priorità" style="--accent:${item.color};cursor:pointer"><span>${item.label}</span><strong>${number(item.value||0)}</strong><small></small></div>`).join("");
   const list=(data.worklist||[]).slice(0,8);
-  qs("#worklist-rows").innerHTML=list.map(row=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td><span class="priority-tag" style="--priority:${palette[row.type]||"#32a1f8"}"><i></i>${escapeHtml(row.category)}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.apparatus||0)}</td><td><i class="status ${row.type==="calde"?"green":row.type==="fredde"?"orange":row.type==="scadute"?"red":"blue"}">${escapeHtml(row.state)}</i></td><td>${number(row.days||0)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("");
+  qs("#worklist-rows").innerHTML=list.map(row=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(row.accountKey||row.client)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td><span class="priority-tag" style="--priority:${palette[row.type]||"#32a1f8"}"><i></i>${escapeHtml(row.category)}</span></td><td>${escapeHtml(row.client)}</td><td>${number(row.apparatus||0)}</td><td><i class="status ${row.type==="calde"?"green":row.type==="fredde"?"orange":row.type==="scadute"?"red":"blue"}">${escapeHtml(row.state)}</i></td><td>${number(row.days||0)}</td><td>${escapeHtml(row.action)}</td><td>${escapeHtml(row.owner)}</td></tr>`).join("");
   const max=Math.max(1,...stats.map(item=>Number(item.value)||0));
   qs("#priority-chart").innerHTML=`<div class="priority-bars">${stats.map(item=>{const height=Math.max(item.value?4:0,(item.value||0)/max*100);return `<div class="priority-bar-group" data-cross-kind="category" data-cross-value="${item.key}" title="Filtra per priorità" style="cursor:pointer"><div class="priority-bar-wrap"><span class="priority-bar-value" style="bottom:calc(${height}% + 6px)">${number(item.value||0)}</span><div class="priority-bar" style="height:${height}%;background:${item.color}"></div></div><span class="priority-bar-label">${item.key==="scadute"?"Scadute":item.key==="fredde"?"Fredde >20 gg":item.key==="sollecito"?"Da sollecitare >10 gg":"Calde <10 gg"}</span></div>`}).join("")}</div>`;
   const overdue=stats.find(item=>item.key==="scadute")?.value||0;

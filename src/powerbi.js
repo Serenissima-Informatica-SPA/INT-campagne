@@ -421,7 +421,9 @@ async function connectAndLoad() {
     executeDax(clientSummaryDax, accessToken),
     executeDax(clientsDax, accessToken),
     executeDax(offersSummaryDax, accessToken),
-    executeDax(worklistDax, accessToken)
+    executeDax(worklistDax, accessToken),
+    executeDax(expectedRowsDax, accessToken),
+    executeDax(comparisonDax, accessToken)
   ]);
   const dashboard = shapeDashboard(...results);
   window.applyPowerBIData(dashboard);

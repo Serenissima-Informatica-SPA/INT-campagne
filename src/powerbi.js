@@ -192,7 +192,7 @@ async function executeDax(query, accessToken) {
 }
 
 function field(row, name) {
-  return row?.[`[${name}]`] ?? row?.[`Clienti_Unificati[${name}]`] ?? row?.[`Offerte_Unificate[${name}]`] ?? row?.[`MisuraDinamica[${name}]`] ?? row?.[`Target[${name}]`] ?? row?.[`Misure[${name}]`] ?? row?.[name] ?? null;
+  return row?.[`[${name}]`] ?? row?.[`Clienti_Unificati[${name}]`] ?? row?.[`Offerte_Unificate[${name}]`] ?? row?.[`MisuraDinamica[${name}]`] ?? row?.[`Target[${name}]`] ?? row?.[`Misure[${name}]`] ?? row?.[`AsseAP[${name}]`] ?? row?.[`Overview_Perimetro[${name}]`] ?? row?.[`Funnel[${name}]`] ?? row?.[name] ?? null;
 }
 const num = (row, name) => Number(field(row, name) ?? 0) || 0;
 const label = (row, name) => String(field(row, name) ?? "").trim();
@@ -203,7 +203,7 @@ const displayPerimeter = value => /^t4$/i.test(String(value ?? "").trim()) ? "Th
 const accountKey = row => label(row, "ChiaveAccount") || label(row, "Cliente");
 function categoryKey(value) {
   const text = value.toLowerCase();
-  if (text.includes("scadut")) return "scadute";
+  if (text.includes("scadut") || text.includes(">30")) return "scadute";
   if (text.includes("21-30") || text.includes("fredda")) return "fredde";
   if (text.includes("11-20") || text.includes("sollecit")) return "sollecito";
   if (text.includes("0-10") || text.includes("calda")) return "calde";
@@ -261,11 +261,11 @@ function aggregateDynamicRows(matrixRows, comparisonRows) {
   return { expected, comparison: [...series.values()] };
 }
 
-function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicRows = [], comparisonRows = []) {
+function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicRows = [], comparisonRows = [], overviewRows = []) {
   const perimeters = perimeterRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const clients = clientRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const totals = Object.fromEntries([
-    "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte",
+    "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "AttesoPezzi",
     "AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale",
     "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR",
     "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"
@@ -287,34 +287,66 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     { key: "feeMargin", label: "Margine servizi", value: totals.MargineServiziVinteEUR, detail: "dal modello Power BI", color: "#7954da" },
     { key: "margin", label: "Margine totale acquisito", value: acquiredMargin, detail: ratio(acquiredMargin, acquiredRevenue), color: "#21836b" }
   ];
-  const offerCount = key => sum(offerRows.filter(row => categoryKey(label(row, "Categoria")) === key), "ConteggioOfferte");
   const offerUnits = condition => sum(offerRows.filter(condition), "QuantitaHardware");
   const statusRows = key => offerRows.filter(row => label(row, "StatoOfferta").toLowerCase() === key.toLowerCase());
   const statusCount = key => sum(statusRows(key), "ConteggioOfferte");
   const statusUnits = key => sum(statusRows(key), "QuantitaHardware");
-  const clientsInOffers = condition => new Set(offerRows.filter(condition).map(accountKey).filter(Boolean)).size;
-  const clientHot = clientsInOffers(row => categoryKey(label(row, "Categoria")) === "calde");
-  const clientWon = clientsInOffers(row => label(row, "StatoOfferta").toLowerCase() === "won");
-  const clientLost = clientsInOffers(row => label(row, "StatoOfferta").toLowerCase() === "lost");
-  const clientInProgress = clientsInOffers(row => label(row, "StatoOfferta").toLowerCase() === "in progress");
+  const hotOffers = offerRows.filter(row => /^creata da 0-10 giorni$/i.test(label(row, "PrioritaEta")));
   const funnel = [
-    { label: "Target", apparati: totals.RTCensite, clienti: totals.ClientiTarget, color: "#19365f" },
-    { label: "In progress", apparati: statusUnits("In Progress"), clienti: clientInProgress, color: "#2774c8" },
-    { label: "Hot", apparati: offerUnits(row => categoryKey(label(row, "Categoria")) === "calde"), clienti: clientHot, color: "#39a0ec" },
-    { label: "Won", apparati: statusUnits("Won"), clienti: clientWon, color: "#f28a27" },
-    { label: "Lost", apparati: statusUnits("Lost"), clienti: clientLost, color: "#2da38f" }
+    { label: "Target", apparati: totals.AttesoPezzi, clienti: totals.ClientiTarget, color: "#19365f" },
+    { label: "In progress", apparati: statusUnits("In Progress"), clienti: statusCount("In Progress"), color: "#2774c8" },
+    { label: "Hot", apparati: sum(hotOffers, "QuantitaHardware"), clienti: sum(offerRows, "HotCount"), color: "#39a0ec" },
+    { label: "Won", apparati: statusUnits("Won"), clienti: statusCount("Won"), color: "#f28a27" },
+    { label: "Lost", apparati: statusUnits("Lost"), clienti: statusCount("Lost"), color: "#2da38f" }
   ];
+  const priorityEtaMatchers = {
+    scadute: /^(creata da >30 giorni|scaduta)$/i,
+    fredde: /^creata da 21-30 giorni$/i,
+    sollecito: /^creata da 11-20 giorni$/i,
+    calde: /^creata da 0-10 giorni$/i
+  };
+  const priorityCounts = Object.fromEntries(Object.entries(priorityEtaMatchers).map(([key, matcher]) => [
+    key, sum(offerRows.filter(row => matcher.test(label(row, "PrioritaEta"))), "ConteggioPriorita")
+  ]));
+  const priorityDetails = offerRows.map(row => ({
+    priorityEta: label(row, "PrioritaEta"),
+    category: label(row, "Categoria"),
+    owner: label(row, "Agente"),
+    count: num(row, "ConteggioPriorita")
+  }));
+  const ownerOptions = [...new Set(priorityDetails.map(row => row.owner).filter(Boolean))].sort((a, b) => a.localeCompare(b, "it"));
+  const overviewProgress = overviewRows.length
+    ? overviewRows.map(row => ({ view: label(row, "Perimetro"), category: label(row, "Categoria"), progress: num(row, "AvanzamentoDinamico") }))
+        .filter(row => row.category && !(sameOverviewView(row.view, "Totale") && isExcluded(row.category)))
+    : overviewProgressFromClients(clients);
   const pipeline = [
     { label: "In corso", count: statusCount("In Progress"), apparatus: statusUnits("In Progress") },
     { label: "Vinte", count: statusCount("Won"), apparatus: statusUnits("Won") },
     { label: "Perse", count: statusCount("Lost"), apparatus: statusUnits("Lost") }
   ];
   const worklist = workRows.map(row => {
-    const key = categoryKey(label(row, "Categoria"));
-    return { type: key, category: categoryLabels[key], accountKey: accountKey(row), client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
+    const key = categoryKey(label(row, "PrioritaEta") || label(row, "Categoria"));
+    return { type: key, category: label(row, "Categoria"), priorityEta: label(row, "PrioritaEta"), accountKey: accountKey(row), client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
   }).filter(row => row.client).sort((a, b) => b.days - a.days);
   const expected = expectedSummary.expected;
-  const clientTable = clients.map(row => ({ key: accountKey(row), name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "HW"), fee: num(row, "Fee"), total: num(row, "Totale") })).filter(row => row.count > 0 || row.hw > 0 || row.fee > 0 || row.total > 0).sort((a, b) => b.total - a.total);
+  const clientTableMap = new Map();
+  for (const row of clients) {
+    const name = label(row, "Cliente");
+    if (!name) continue;
+    if (!clientTableMap.has(name)) clientTableMap.set(name, { key: "", keys: new Set(), name, count: 0, hw: 0, fee: 0, total: 0, axes: [] });
+    const target = clientTableMap.get(name);
+    const key = accountKey(row);
+    if (key) target.keys.add(key);
+    target.count += num(row, "N.RT");
+    target.hw += num(row, "HW");
+    target.fee += num(row, "Fee");
+    target.total += num(row, "Totale");
+    const axis = { perimeter: label(row, "Perimetro"), ap: label(row, "AP") };
+    if (!target.axes.some(item => item.perimeter === axis.perimeter && item.ap === axis.ap)) target.axes.push(axis);
+  }
+  const clientTable = [...clientTableMap.values()].map(row => ({ ...row, key: row.keys.size === 1 ? [...row.keys][0] : "" }))
+    .filter(row => row.count > 0 || row.hw > 0 || row.fee > 0 || row.total > 0)
+    .sort((a, b) => b.total - a.total);
   const contactedClients = new Set(workRows.map(accountKey).filter(Boolean)).size;
   const negotiationCount = sum(offerRows.filter(row => /negozia|negotiat/i.test(label(row, "StatoOfferta"))), "ConteggioOfferte");
   const commercialMetrics = [
@@ -363,13 +395,17 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     comparison: expectedSummary.comparison,
     pipeline,
     worklist,
-    priorityCounts: { scadute: offerCount("scadute"), fredde: offerCount("fredde"), sollecito: offerCount("sollecito"), calde: offerCount("calde") },
-    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows, dynamic: dynamicRows, comparison: comparisonRows }
+    priorityCounts,
+    priorityDetails,
+    priorityDistribution: buildPriorityDistribution(priorityDetails),
+    ownerOptions,
+    overviewProgress,
+    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows, dynamic: dynamicRows, comparison: comparisonRows, overview: overviewRows }
   };
 }
 
-const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "HW", "Fee", "Totale", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
-const targetFields = ["AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale"];
+const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "N.RT", "HW", "Fee", "Totale", "HW", "Fee", "Totale", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "CostoHardwareColonnaEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
+const targetFields = ["AttesoPezzi", "AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale"];
 
 function filterDashboard(base, selection = {}) {
   if (!base?.raw) return base;
@@ -438,7 +474,7 @@ function filterDashboard(base, selection = {}) {
     const p = label(row, "Perimetro");
     return !isExcluded(p) && perimetersInSelection.has(p) && selectedKeys.has(accountKey(row));
   });
-  return shapeDashboard(perimeterRows, clients, offers, work, dynamic, comparison);
+  return shapeDashboard(perimeterRows, clients, offers, work, dynamic, comparison, []);
 }
 
 async function connectAndLoad() {
@@ -449,7 +485,8 @@ async function connectAndLoad() {
     executeDax(offersSummaryDax, accessToken),
     executeDax(worklistDax, accessToken),
     executeDax(expectedRowsDax, accessToken),
-    executeDax(comparisonDax, accessToken)
+    executeDax(comparisonDax, accessToken),
+    executeDax(overviewProgressDax, accessToken)
   ]);
   const dashboard = shapeDashboard(...results);
   window.applyPowerBIData(dashboard);

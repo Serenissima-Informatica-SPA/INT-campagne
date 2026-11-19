@@ -169,12 +169,15 @@ async function executeDax(query, accessToken) {
 }
 
 function field(row, name) {
-  return row?.[`[${name}]`] ?? row?.[`Clienti_Unificati[${name}]`] ?? row?.[`Offerte_Unificate[${name}]`] ?? row?.[name] ?? null;
+  return row?.[`[${name}]`] ?? row?.[`Clienti_Unificati[${name}]`] ?? row?.[`Offerte_Unificate[${name}]`] ?? row?.[`MisuraDinamica[${name}]`] ?? row?.[`Target[${name}]`] ?? row?.[`Misure[${name}]`] ?? row?.[name] ?? null;
 }
 const num = (row, name) => Number(field(row, name) ?? 0) || 0;
 const label = (row, name) => String(field(row, name) ?? "").trim();
 const sum = (rows, name) => rows.reduce((total, row) => total + num(row, name), 0);
 const isExcluded = perimeter => /^(bergamo|gdo)$/i.test(perimeter);
+const modelPerimeter = value => /^the special four$/i.test(String(value ?? "").trim()) ? "T4" : String(value ?? "").trim();
+const displayPerimeter = value => /^t4$/i.test(String(value ?? "").trim()) ? "The Special Four" : String(value ?? "").trim();
+const accountKey = row => label(row, "ChiaveAccount") || label(row, "Cliente");
 function categoryKey(value) {
   const text = value.toLowerCase();
   if (text.includes("scadut")) return "scadute";
@@ -186,31 +189,77 @@ function categoryKey(value) {
 const categoryLabels = { scadute: "SCADUTA", fredde: "FREDDA >20 GG", sollecito: "DA SOLLECITARE", calde: "CALDA <10 GG", altre: "IN CORSO" };
 const recommendedAction = { scadute: "Verifica scadenza", fredde: "Ricontatto cliente", sollecito: "Sollecito offerta", calde: "Avanzare ordine", altre: "Verifica stato" };
 
-function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
+function aggregateDynamicRows(matrixRows, comparisonRows) {
+  const byPerimeter = new Map();
+  for (const row of matrixRows.filter(row => !isExcluded(label(row, "Perimetro")))) {
+    const perimeter = label(row, "Perimetro");
+    const id = num(row, "ID");
+    const key = `${perimeter}|${id}`;
+    if (!byPerimeter.has(key)) byPerimeter.set(key, { perimeter, id, label: label(row, "Voce"), expected: num(row, "Atteso"), acquired: 0 });
+    byPerimeter.get(key).acquired += num(row, "Acquisito");
+  }
+  const totals = new Map();
+  for (const item of byPerimeter.values()) {
+    if (!totals.has(item.id)) totals.set(item.id, { id: item.id, label: item.label, expected: 0, acquired: 0 });
+    const total = totals.get(item.id);
+    total.expected += item.expected;
+    total.acquired += item.acquired;
+  }
+  const expected = [...totals.values()].sort((a, b) => a.id - b.id).map(row => ({
+    label: row.label,
+    acquired: row.acquired,
+    expected: row.expected,
+    missing: row.expected - row.acquired,
+    progress: row.expected ? row.acquired / row.expected * 100 : 0
+  }));
+
+  const byPerimeterSeries = new Map();
+  for (const row of comparisonRows.filter(row => !isExcluded(label(row, "Perimetro")))) {
+    const perimeter = label(row, "Perimetro");
+    const labelValue = label(row, "Voce");
+    const type = label(row, "Tipo");
+    const key = `${perimeter}|${labelValue}|${type}`;
+    if (!byPerimeterSeries.has(key)) byPerimeterSeries.set(key, { perimeter, label: labelValue, type, value: 0, first: true });
+    const bucket = byPerimeterSeries.get(key);
+    const value = num(row, "Confronto");
+    if (/atteso/i.test(type)) {
+      if (bucket.first) bucket.value = value;
+      bucket.first = false;
+    } else {
+      bucket.value += value;
+    }
+  }
+  const series = new Map();
+  for (const item of byPerimeterSeries.values()) {
+    const key = `${item.label}|${item.type}`;
+    if (!series.has(key)) series.set(key, { label: item.label, type: item.type, value: 0 });
+    series.get(key).value += item.value;
+  }
+  return { expected, comparison: [...series.values()] };
+}
+
+function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicRows = [], comparisonRows = []) {
   const perimeters = perimeterRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const clients = clientRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const totals = Object.fromEntries([
-    "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "ValoreVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR", "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"
+    "ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte",
+    "AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale",
+    "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR",
+    "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"
   ].map(key => [key, sum(perimeters, key)]));
-  const expectedRevenue = totals.StimaHardwareEUR + totals.StimaServiziEUR;
+  const expectedSummary = aggregateDynamicRows(dynamicRows, comparisonRows);
+  const expectedRevenue = totals.AttesoRicavoTotale;
   const acquiredRevenue = totals.ValoreVinteEUR;
   const missingRevenue = totals.MancRicTotale;
   const acquiredMargin = totals.MargineTotaleVinteEUR;
-  const expectedMargin = totals.MargineTotaleStima;
+  const expectedMargin = totals.AttesoMargineTotale;
   const missingMargin = totals.MancMargTotale;
-  const progressRow = perimeters.length === 1 ? perimeters[0] : null;
-  const progress = (row, measure, acquired, expected) => {
-    const value = field(row, measure);
-    if (value == null || value === "") return expected ? acquired / expected * 100 : 0;
-    const numeric = Number(value) || 0;
-    return Math.abs(numeric) <= 1 ? numeric * 100 : numeric;
-  };
   const ratio = (value, total) => total ? `${(value / total * 100).toFixed(1).replace(".", ",")}% del totale` : "—";
   const economics = [
     { key: "revenue", label: "Ricavo totale acquisito", value: acquiredRevenue, detail: ratio(acquiredRevenue, expectedRevenue), color: "#19365f" },
     { key: "hw", label: "Ricavo HW acquisito", value: totals.ValoreHardwareVinteEUR, detail: ratio(totals.ValoreHardwareVinteEUR, acquiredRevenue), color: "#2774c8" },
     { key: "fee", label: "Servizi acquisiti", value: totals.ValoreServiziVinteEUR, detail: ratio(totals.ValoreServiziVinteEUR, acquiredRevenue), color: "#39a0ec" },
-    { key: "cost", label: "Costo HW stimato", value: totals.CostoHardwareEUR, detail: "dal modello Power BI", color: "#f28a27" },
+    { key: "cost", label: "Costo HW stimato", value: totals.CostoHardwareVinteEUR, detail: "dal modello Power BI", color: "#f28a27" },
     { key: "hwMargin", label: "Margine HW acquisito", value: totals.MargineHardwareVinteEUR, detail: ratio(totals.MargineHardwareVinteEUR, totals.ValoreHardwareVinteEUR), color: "#2da38f" },
     { key: "feeMargin", label: "Margine servizi", value: totals.MargineServiziVinteEUR, detail: "dal modello Power BI", color: "#7954da" },
     { key: "margin", label: "Margine totale acquisito", value: acquiredMargin, detail: ratio(acquiredMargin, acquiredRevenue), color: "#21836b" }
@@ -220,8 +269,8 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
   const statusRows = key => offerRows.filter(row => label(row, "StatoOfferta").toLowerCase() === key.toLowerCase());
   const statusCount = key => sum(statusRows(key), "ConteggioOfferte");
   const statusUnits = key => sum(statusRows(key), "QuantitaHardware");
-  const clientHot = new Set(workRows.filter(row => categoryKey(label(row, "Categoria")) === "calde").map(row => label(row, "Cliente"))).size;
-  const clientLost = new Set(workRows.filter(row => label(row, "StatoOfferta").toLowerCase() === "lost").map(row => label(row, "Cliente"))).size;
+  const clientHot = new Set(workRows.filter(row => categoryKey(label(row, "Categoria")) === "calde").map(accountKey)).size;
+  const clientLost = new Set(workRows.filter(row => label(row, "StatoOfferta").toLowerCase() === "lost").map(accountKey)).size;
   const funnel = [
     { label: "Target", apparati: totals.RTCensite, clienti: totals.ClientiTarget, color: "#19365f" },
     { label: "In progress", apparati: statusUnits("In Progress"), clienti: totals.ClientiConOfferta, color: "#2774c8" },
@@ -236,18 +285,11 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
   ];
   const worklist = workRows.map(row => {
     const key = categoryKey(label(row, "Categoria"));
-    return { type: key, category: categoryLabels[key], client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
+    return { type: key, category: categoryLabels[key], accountKey: accountKey(row), client: label(row, "Cliente"), apparatus: num(row, "QuantitaHardware"), state: label(row, "StatoOfferta"), days: num(row, "GiorniDaCreazione"), action: recommendedAction[key], owner: label(row, "Agente") || "—" };
   }).filter(row => row.client).sort((a, b) => b.days - a.days);
-  const expected = [
-    { label: "Ricavo totale", acquired: acquiredRevenue, expected: expectedRevenue, missing: missingRevenue, progress: progress(progressRow, "AvanzRicTotale", acquiredRevenue, expectedRevenue) },
-    { label: "Ricavo HW", acquired: totals.ValoreHardwareVinteEUR, expected: totals.StimaHardwareEUR, missing: totals.MancRicHW, progress: progress(progressRow, "AvanzRicHW", totals.ValoreHardwareVinteEUR, totals.StimaHardwareEUR) },
-    { label: "Ricavo servizi (Fee)", acquired: totals.ValoreServiziVinteEUR, expected: totals.StimaServiziEUR, missing: totals.MancRicServizi, progress: progress(progressRow, "AvanzRicServizi", totals.ValoreServiziVinteEUR, totals.StimaServiziEUR) },
-    { label: "Margine HW", acquired: totals.MargineHardwareVinteEUR, expected: totals.MargineStimaHardwareEUR, missing: totals.MancMargHW, progress: progress(progressRow, "AvanzMargHW", totals.MargineHardwareVinteEUR, totals.MargineStimaHardwareEUR) },
-    { label: "Margine servizi", acquired: totals.MargineServiziVinteEUR, expected: totals.MargineServiziStimaEUR, missing: totals.MancMargServizi, progress: progress(progressRow, "AvanzMargServizi", totals.MargineServiziVinteEUR, totals.MargineServiziStimaEUR) },
-    { label: "Margine totale", acquired: acquiredMargin, expected: expectedMargin, missing: missingMargin, progress: progress(progressRow, "AvanzMargTotale", acquiredMargin, expectedMargin) }
-  ];
-  const clientTable = clients.map(row => ({ name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "StimaHardwareEUR"), fee: num(row, "StimaServiziEUR") })).sort((a, b) => (b.hw + b.fee) - (a.hw + a.fee));
-  const contactedClients = new Set(workRows.map(row => label(row, "Cliente")).filter(Boolean)).size;
+  const expected = expectedSummary.expected;
+  const clientTable = clients.map(row => ({ key: accountKey(row), name: label(row, "Cliente"), count: num(row, "RTSelezionate"), hw: num(row, "StimaHardwareEUR"), fee: num(row, "StimaServiziEUR") })).sort((a, b) => (b.hw + b.fee) - (a.hw + a.fee));
+  const contactedClients = new Set(workRows.map(accountKey).filter(Boolean)).size;
   const negotiationCount = sum(offerRows.filter(row => /negozia|negotiat/i.test(label(row, "StatoOfferta"))), "ConteggioOfferte");
   const commercialMetrics = [
     { label: "CLIENTI TOTALI", value: totals.ClientiTarget, detail: "" },
@@ -258,65 +300,59 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows) {
     { label: "PERSI", value: clientLost, detail: ratio(clientLost, totals.ClientiTarget) }
   ];
   const commercialDetails = worklist.slice(0, 5).map(row => ({
-    client: row.client, owner: row.owner, apparatus: row.apparatus, state: row.state, date: "—", action: row.action
+    accountKey: row.accountKey, client: row.client, owner: row.owner, apparatus: row.apparatus, state: row.state, date: "—", action: row.action
   }));
   return {
     mode: "live",
-    filterPerimeters: ["Totale", ...perimeters.map(row => label(row, "Perimetro"))],
+    filterPerimeters: ["Totale", ...perimeters.map(row => displayPerimeter(label(row, "Perimetro")))],
     totals: { expectedRevenue, acquiredRevenue, missingRevenue, acquiredMargin, missingMargin },
     economics,
     funnel,
-    perimeters: perimeters.map((row, index) => ({ name: label(row, "Perimetro"), completed: num(row, "ClientiVinti"), target: num(row, "ClientiTarget"), color: colors[index % colors.length] })),
+    perimeters: perimeters.map((row, index) => ({ name: displayPerimeter(label(row, "Perimetro")), completed: num(row, "ClientiVinti"), target: num(row, "ClientiTarget"), color: colors[index % colors.length] })),
     perimeterEconomics: perimeters.map(row => ({
-      name: label(row, "Perimetro"),
-      expectedHardware: num(row, "StimaHardwareEUR"),
+      name: displayPerimeter(label(row, "Perimetro")),
+      expectedHardware: num(row, "AttesoRicavoHW"),
       acquiredHardware: num(row, "ValoreHardwareVinteEUR"),
-      expectedServices: num(row, "StimaServiziEUR"),
+      expectedServices: num(row, "AttesoServizi"),
       acquiredServices: num(row, "ValoreServiziVinteEUR"),
       acquiredRevenue: num(row, "ValoreVinteEUR"),
-      expectedHardwareMargin: num(row, "MargineStimaHardwareEUR"),
+      expectedHardwareMargin: num(row, "AttesoMargineHW"),
       acquiredHardwareMargin: num(row, "MargineHardwareVinteEUR"),
-      expectedServicesMargin: num(row, "MargineServiziStimaEUR"),
+      expectedServicesMargin: num(row, "AttesoMargineServizi"),
       acquiredServicesMargin: num(row, "MargineServiziVinteEUR"),
-      expectedMargin: num(row, "MargineTotaleStima"),
+      expectedMargin: num(row, "AttesoMargineTotale"),
       acquiredMargin: num(row, "MargineTotaleVinteEUR"),
       missingRevenue: num(row, "MancRicTotale"),
       missingHardwareRevenue: num(row, "MancRicHW"),
       missingServicesRevenue: num(row, "MancRicServizi"),
       missingHardwareMargin: num(row, "MancMargHW"),
       missingServicesMargin: num(row, "MancMargServizi"),
-      missingMargin: num(row, "MancMargTotale"),
-      progressRevenue: progress(row, "AvanzRicTotale", num(row, "ValoreVinteEUR"), num(row, "StimaHardwareEUR") + num(row, "StimaServiziEUR")),
-      progressHardware: progress(row, "AvanzRicHW", num(row, "ValoreHardwareVinteEUR"), num(row, "StimaHardwareEUR")),
-      progressServices: progress(row, "AvanzRicServizi", num(row, "ValoreServiziVinteEUR"), num(row, "StimaServiziEUR")),
-      progressHardwareMargin: progress(row, "AvanzMargHW", num(row, "MargineHardwareVinteEUR"), num(row, "MargineStimaHardwareEUR")),
-      progressServicesMargin: progress(row, "AvanzMargServizi", num(row, "MargineServiziVinteEUR"), num(row, "MargineServiziStimaEUR")),
-      progressMargin: progress(row, "AvanzMargTotale", num(row, "MargineTotaleVinteEUR"), num(row, "MargineTotaleStima"))
+      missingMargin: num(row, "MancMargTotale")
     })),
     wonClients: totals.ClientiVinti,
     commercialMetrics,
     commercialDetails,
     clients: clientTable,
     expected,
+    comparison: expectedSummary.comparison,
     pipeline,
     worklist,
     priorityCounts: { scadute: offerCount("scadute"), fredde: offerCount("fredde"), sollecito: offerCount("sollecito"), calde: offerCount("calde") },
-    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows }
+    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows, dynamic: dynamicRows, comparison: comparisonRows }
   };
 }
 
-const metricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "ValoreVinteEUR", "CostoHardwareEUR", "MargineStimaHardwareEUR", "MargineServiziStimaEUR", "MargineTotaleStima", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR", "MancRicTotale", "MancRicHW", "MancRicServizi", "MancMargHW", "MancMargServizi", "MancMargTotale"];
+const clientMetricFields = ["ClientiTarget", "ClientiVinti", "ClientiConOfferta", "RTCensite", "RTSelezionate", "RTDaVerificare", "Offerte", "OfferteInCorso", "OfferteVinte", "StimaHardwareEUR", "StimaServiziEUR", "ValoreVinteEUR", "ValoreHardwareVinteEUR", "ValoreServiziVinteEUR", "CostoHardwareVinteEUR", "MargineHardwareVinteEUR", "MargineServiziVinteEUR", "MargineTotaleVinteEUR"];
+const targetFields = ["AttesoRicavoTotale", "AttesoRicavoHW", "AttesoServizi", "AttesoMargineHW", "AttesoMargineServizi", "AttesoMargineTotale"];
 
 function filterDashboard(base, selection = {}) {
   if (!base?.raw) return base;
   const same = (a, b) => String(a ?? "").trim().toLocaleLowerCase("it-IT") === String(b ?? "").trim().toLocaleLowerCase("it-IT");
-  const inPerimeter = row => !selection.perimeter || selection.perimeter === "Totale" || same(label(row, "Perimetro"), selection.perimeter);
+  const perimeterSelected = !selection.perimeter || selection.perimeter === "Totale" ? null : modelPerimeter(selection.perimeter);
+  const inPerimeter = row => !perimeterSelected || same(label(row, "Perimetro"), perimeterSelected);
   let clients = base.raw.clients.filter(inPerimeter);
   let offers = base.raw.offers.filter(inPerimeter);
   let work = base.raw.work.filter(inPerimeter);
-  if (!selection.category && !selection.status && !selection.client) {
-    return shapeDashboard(base.raw.perimeters.filter(inPerimeter), clients, offers, work);
-  }
   if (selection.category) {
     offers = offers.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
     work = work.filter(row => categoryKey(label(row, "Categoria")) === selection.category);
@@ -336,23 +372,47 @@ function filterDashboard(base, selection = {}) {
     offers = offers.filter(matchesStatus);
     work = work.filter(matchesStatus);
   }
-  const allowedClients = new Set([...offers, ...work].map(row => label(row, "Cliente")).filter(Boolean));
+  const eligibleKeys = new Set([...offers, ...work].map(accountKey).filter(Boolean));
   if (selection.client) {
-    clients = clients.filter(row => same(label(row, "Cliente"), selection.client));
-    offers = offers.filter(row => same(label(row, "Cliente"), selection.client));
-    work = work.filter(row => same(label(row, "Cliente"), selection.client));
+    clients = clients.filter(row => same(accountKey(row), selection.client) || same(label(row, "Cliente"), selection.client));
+    offers = offers.filter(row => same(accountKey(row), selection.client) || same(label(row, "Cliente"), selection.client));
+    work = work.filter(row => same(accountKey(row), selection.client) || same(label(row, "Cliente"), selection.client));
   } else if (selection.category || selection.status) {
-    clients = clients.filter(row => allowedClients.has(label(row, "Cliente")));
+    clients = clients.filter(row => eligibleKeys.has(accountKey(row)));
   }
-  const perimeterMap = new Map();
+  const perimetersInSelection = new Set(clients.map(row => label(row, "Perimetro")).filter(Boolean));
+  const sourceSummaries = base.raw.perimeters.filter(row => perimetersInSelection.has(label(row, "Perimetro")) && !isExcluded(label(row, "Perimetro")));
+  const clientMap = new Map();
   for (const row of clients) {
-    const name = label(row, "Perimetro");
-    if (!name) continue;
-    if (!perimeterMap.has(name)) perimeterMap.set(name, { "Clienti_Unificati[Perimetro]": name });
-    const total = perimeterMap.get(name);
-    for (const key of metricFields) total[`[${key}]`] = (Number(total[`[${key}]`]) || 0) + num(row, key);
+    const perimeter = label(row, "Perimetro");
+    if (!perimeter) continue;
+    if (!clientMap.has(perimeter)) clientMap.set(perimeter, { "Clienti_Unificati[Perimetro]": perimeter });
+    const target = clientMap.get(perimeter);
+    for (const key of clientMetricFields) target[`[${key}]`] = (Number(target[`[${key}]`] || 0) + num(row, key));
   }
-  return shapeDashboard([...perimeterMap.values()], clients, offers, work);
+  const summaryMap = new Map(sourceSummaries.map(row => [label(row, "Perimetro"), row]));
+  const perimeterRows = [...clientMap.entries()].map(([perimeter, clientTotals]) => {
+    const summary = summaryMap.get(perimeter) || {};
+    const merged = { ...clientTotals };
+    for (const key of targetFields) merged[`[${key}]`] = num(summary, key);
+    merged["[MancRicTotale]"] = num(merged, "AttesoRicavoTotale") - num(merged, "ValoreVinteEUR");
+    merged["[MancRicHW]"] = num(merged, "AttesoRicavoHW") - num(merged, "ValoreHardwareVinteEUR");
+    merged["[MancRicServizi]"] = num(merged, "AttesoServizi") - num(merged, "ValoreServiziVinteEUR");
+    merged["[MancMargHW]"] = num(merged, "AttesoMargineHW") - num(merged, "MargineHardwareVinteEUR");
+    merged["[MancMargServizi]"] = num(merged, "AttesoMargineServizi") - num(merged, "MargineServiziVinteEUR");
+    merged["[MancMargTotale]"] = num(merged, "AttesoMargineTotale") - num(merged, "MargineTotaleVinteEUR");
+    return merged;
+  });
+  const selectedKeys = new Set(clients.map(accountKey));
+  const dynamic = base.raw.dynamic.filter(row => {
+    const p = label(row, "Perimetro");
+    return !isExcluded(p) && perimetersInSelection.has(p) && selectedKeys.has(accountKey(row));
+  });
+  const comparison = base.raw.comparison.filter(row => {
+    const p = label(row, "Perimetro");
+    return !isExcluded(p) && perimetersInSelection.has(p) && selectedKeys.has(accountKey(row));
+  });
+  return shapeDashboard(perimeterRows, clients, offers, work, dynamic, comparison);
 }
 
 async function connectAndLoad() {

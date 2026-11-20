@@ -127,8 +127,6 @@ function renderPerimeters(){
     subtitle.textContent="Apparati acquisiti sul target";
     if(data.mode!=="live"){
       qs("#perimeter-chart").innerHTML=`<div class="empty-state">Il dettaglio apparati per perimetro si vede collegando il modello Power BI.</div>`;
-      qs("#conversion-value").textContent="—";
-      qs("#conversion-donut").style.setProperty("--progress","0%");
       return;
     }
     const view=modelPerimeter(state.overviewPerimeter);
@@ -412,7 +410,7 @@ qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-funnel-toggle-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-funnel-toggle2-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

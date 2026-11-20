@@ -83,6 +83,23 @@ const money = n => new Intl.NumberFormat("it-IT", { style:"currency", currency:"
 const compact = n => n === 0 ? "€0" : n < 1000 ? money(n) : n >= 1_000_000 ? `€${(n/1_000_000).toLocaleString("it-IT",{maximumFractionDigits:2})}M` : `€${(n/1_000).toLocaleString("it-IT",{maximumFractionDigits:0})}k`;
 const number = n => new Intl.NumberFormat("it-IT").format(n);
 const modelPerimeter = value => /^the special four$/i.test(String(value??"").trim())?"T4":String(value??"").trim();
+const rowField = (row,name) => row?.[`[${name}]`] ?? row?.[`Clienti_Unificati[${name}]`] ?? row?.[`Offerte_Unificate[${name}]`] ?? row?.[name] ?? null;
+function apparatusProgressRows(){
+  const rows=data.raw?.perimeters||[];
+  const byPerimeter=new Map();
+  for(const row of rows){
+    const perimeter=modelPerimeter(rowField(row,"Perimetro"));
+    if(!perimeter)continue;
+    byPerimeter.set(perimeter,{perimeter,target:Number(rowField(row,"AttesoPezzi"))||0,acquired:0});
+  }
+  for(const row of data.raw?.offers||[]){
+    if(String(rowField(row,"StatoOfferta")||"").trim().toLowerCase()!=="won")continue;
+    const perimeter=modelPerimeter(rowField(row,"Perimetro"));
+    const target=byPerimeter.get(perimeter);
+    if(target)target.acquired+=Number(rowField(row,"QuantitaHardware"))||0;
+  }
+  return [...byPerimeter.values()].map(row=>({...row,progress:row.target?row.acquired/row.target:0}));
+}
 const displayPerimeter = value => /^t4$/i.test(String(value??"").trim())?"The Special Four":String(value??"").trim();
 const priorityType = value => {
   const text=String(value||"").toLowerCase();
@@ -105,19 +122,47 @@ function renderFunnel(){
   qs("#funnel-chart").innerHTML=data.funnel.map(x=>{const val=x[key],width=val?Math.max(30,42+(val/max)*56):30;const filter=x.label==="Target"?"target":x.label==="Hot"?"category:calde":`status:${x.label==="In progress"?"In Progress":x.label}`;return `<div class="funnel-step" data-funnel-filter="${filter}" role="button" tabindex="0" title="Filtra le altre visualizzazioni" style="cursor:pointer;width:${width}%;background:${x.color}">${x.label}<span class="funnel-value">${number(val)}</span></div>`}).join("");
 }
 function renderPerimeters(){
-  if(data.mode==="live"&&Array.isArray(data.overviewProgress)){
+  const subtitle=qs("#perimeter-subtitle");
+  if(state.funnel==="apparati"){
+    subtitle.textContent="Apparati acquisiti sul target";
+    if(data.mode!=="live"){
+      qs("#perimeter-chart").innerHTML=`<div class="empty-state">Il dettaglio apparati per perimetro si vede collegando il modello Power BI.</div>`;
+      qs("#conversion-value").textContent="—";
+      qs("#conversion-donut").style.setProperty("--progress","0%");
+      return;
+    }
     const view=modelPerimeter(state.overviewPerimeter);
-    const rows=data.overviewProgress.filter(row=>String(row.view||"").trim().toLocaleLowerCase("it-IT")===view.toLocaleLowerCase("it-IT"));
+    const all=apparatusProgressRows();
+    const selected=view==="Totale"?all:all.filter(row=>modelPerimeter(row.perimeter).toLocaleLowerCase("it-IT")===view.toLocaleLowerCase("it-IT"));
+    const rows=selected.map(row=>({
+      category:view==="Totale"?row.perimeter:`Totale ${displayPerimeter(row.perimeter)}`,
+      progress:row.progress,
+      clickable:view==="Totale"
+    }));
     qs("#perimeter-chart").innerHTML=rows.map((row,index)=>{
       const pct=Math.max(0,Math.min(100,(Number(row.progress)||0)*100));
       const name=view==="Totale"?displayPerimeter(row.category):row.category;
       const color=["#2da38f","#2774c8","#f28a27","#39a0ec","#7954da"][index%5];
-      const active=state.overviewAxis===row.category;
-      return `<div class="perimeter-row ${active?"selected":""}" data-overview-axis="${escapeHtml(row.category)}" role="button" tabindex="0" title="Filtra i clienti secondo FiltroClientiDaAsse" style="cursor:pointer"><span class="perimeter-name">${escapeHtml(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,0.6)}%;background:${color}">${pct>=18?`${pct.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${pct.toFixed(1).replace(".",",")}%</span></div>`;
-    }).join("")||`<div class="empty-state">Nessuna categoria per il perimetro selezionato</div>`;
+      const active=row.clickable&&state.overviewAxis===row.category;
+      const attrs=row.clickable?`data-overview-axis="${escapeHtml(row.category)}" role="button" tabindex="0" title="Filtra i clienti secondo il perimetro"`:"";
+      return `<div class="perimeter-row ${active?"selected":""}" ${attrs} style="${row.clickable?"cursor:pointer":""}"><span class="perimeter-name">${escapeHtml(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,0.6)}%;background:${color}">${pct>=18?`${pct.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${pct.toFixed(1).replace(".",",")}%</span></div>`;
+    }).join("")||`<div class="empty-state">Nessun target apparati per il perimetro selezionato</div>`;
   }else{
-    const rows=data.perimeters.filter(x=>filteredPerimeters().includes(x.name));
-    qs("#perimeter-chart").innerHTML=rows.map(x=>{const value=x.target?x.completed/x.target*100:0;return `<div class="perimeter-row"><span class="perimeter-name">${escapeHtml(x.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(value,0.6)}%;background:${x.color}">${value>=18?`${value.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${x.target?`${x.completed} / ${x.target}`:"n.d."}</span></div>`}).join("");
+    subtitle.textContent="Clienti acquisiti sul target";
+    if(data.mode==="live"&&Array.isArray(data.overviewProgress)){
+      const view=modelPerimeter(state.overviewPerimeter);
+      const rows=data.overviewProgress.filter(row=>String(row.view||"").trim().toLocaleLowerCase("it-IT")===view.toLocaleLowerCase("it-IT"));
+      qs("#perimeter-chart").innerHTML=rows.map((row,index)=>{
+        const pct=Math.max(0,Math.min(100,(Number(row.progress)||0)*100));
+        const name=view==="Totale"?displayPerimeter(row.category):row.category;
+        const color=["#2da38f","#2774c8","#f28a27","#39a0ec","#7954da"][index%5];
+        const active=state.overviewAxis===row.category;
+        return `<div class="perimeter-row ${active?"selected":""}" data-overview-axis="${escapeHtml(row.category)}" role="button" tabindex="0" title="Filtra i clienti secondo FiltroClientiDaAsse" style="cursor:pointer"><span class="perimeter-name">${escapeHtml(name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,0.6)}%;background:${color}">${pct>=18?`${pct.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${pct.toFixed(1).replace(".",",")}%</span></div>`;
+      }).join("")||`<div class="empty-state">Nessuna categoria per il perimetro selezionato</div>`;
+    }else{
+      const rows=data.perimeters.filter(x=>filteredPerimeters().includes(x.name));
+      qs("#perimeter-chart").innerHTML=rows.map(x=>{const value=x.target?x.completed/x.target*100:0;return `<div class="perimeter-row"><span class="perimeter-name">${escapeHtml(x.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(value,0.6)}%;background:${x.color}">${value>=18?`${value.toFixed(1).replace(".",",")}%`:""}</div></div><span class="perimeter-count">${x.target?`${x.completed} / ${x.target}`:"n.d."}</span></div>`}).join("");
+    }
   }
   const won=Number(data.totals?.ClientiVinti??data.funnel[3].clienti)||0; const target=Number(data.totals?.ClientiTarget??data.funnel[0].clienti)||0; const conv=target?Math.round(won/target*1000)/10:0;
   qs("#conversion-value").textContent=`${conv.toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
@@ -358,7 +403,7 @@ document.addEventListener("click",e=>{
   const funnel=e.target.closest("[data-funnel-filter]");
   if(funnel){const value=funnel.dataset.funnelFilter;if(value==="target"){state.cross={category:null,status:null,client:null};applyCrossfilters()}else setCrossFilter(value.startsWith("category:")?"category":"status",value.replace(/^category:|^status:/,""))}
 });
-qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel()}));
+qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel();renderPerimeters()}));
 qs("#client-search").addEventListener("input",e=>{state.search=e.target.value;renderClients()});
 qs("#owner-filter").addEventListener("change",e=>{state.priorityOwner=e.target.value;renderPriorities()});
 
@@ -367,7 +412,7 @@ qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-kpi-list-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-funnel-toggle-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

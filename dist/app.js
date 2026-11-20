@@ -75,7 +75,7 @@ const demo = {
 let data = demo;
 let liveSourceData = null;
 
-const state = { page: "panoramica", perimeter: "Totale", overviewPerimeter: "Totale", overviewAxis: null, priorityOwner: "", funnel: "apparati", search: "", priority: "tutte", showAll: false, cross: { category: null, status: null, client: null } };
+const state = { page: "panoramica", perimeter: "Totale", overviewPerimeter: "Totale", overviewAxis: null, priorityOwner: "", funnel: "apparati", search: "", priority: "tutte", cross: { category: null, status: null, client: null } };
 const qs = (s, root=document) => root.querySelector(s);
 const qsa = (s, root=document) => [...root.querySelectorAll(s)];
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -134,7 +134,7 @@ function clientMatchesOverviewAxis(row){
 function renderClients(){
   const axisRows=data.clients.filter(clientMatchesOverviewAxis);
   const visible=axisRows.filter(x=>x.name.toLowerCase().includes(state.search.toLowerCase()));
-  const rows=state.showAll?visible:visible.slice(0,5); qs("#row-count").textContent=`${visible.length} clienti`;
+  const rows=visible; qs("#row-count").textContent=`${visible.length} clienti`;
   qs("#client-rows").innerHTML=rows.map(x=>`<tr data-cross-kind="client" data-cross-value="${escapeHtml(x.key||x.name)}" title="Seleziona il cliente e filtra le altre visualizzazioni" style="cursor:pointer"><td title="${escapeHtml(x.name)}">${escapeHtml(x.name)}</td><td>${x.count}</td><td>${money(x.hw)}</td><td>${money(x.fee)}</td><td>${money(x.total??(x.hw+x.fee))}</td></tr>`).join("")||`<tr><td colspan="5">Nessun cliente trovato</td></tr>`;
   const total=axisRows.reduce((a,x)=>({count:a.count+x.count,hw:a.hw+x.hw,fee:a.fee+x.fee,total:a.total+(x.total??(x.hw+x.fee))}),{count:0,hw:0,fee:0,total:0});
   qs("#client-total").innerHTML=`<tr><td>${data.mode==="live"?"Totale modello":"Totale demo"}</td><td>${number(total.count)}</td><td>${money(total.hw)}</td><td>${money(total.fee)}</td><td>${money(total.total)}</td></tr>`;
@@ -361,14 +361,13 @@ document.addEventListener("click",e=>{
 qsa(".segment").forEach(b=>b.addEventListener("click",()=>{state.funnel=b.dataset.funnel;qsa(".segment").forEach(x=>x.classList.toggle("active",x===b));renderFunnel()}));
 qs("#client-search").addEventListener("input",e=>{state.search=e.target.value;renderClients()});
 qs("#owner-filter").addEventListener("change",e=>{state.priorityOwner=e.target.value;renderPriorities()});
-qs("#table-more").addEventListener("click",()=>{state.showAll=!state.showAll;renderClients();showToast(state.showAll?"Tutti i clienti di esempio":"Vista sintetica")});
 
 qs("#connect-open").addEventListener("click",connectDialog);qs("#notice-connect").addEventListener("click",connectDialog);qs("#model-open").addEventListener("click",()=>qs("#model-dialog").showModal());
 qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-kpi-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-perimeter-kpi-list-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

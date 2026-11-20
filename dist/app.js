@@ -133,15 +133,17 @@ function renderPerimeters(){
   }
 
   let conv=0;
-  if(data.mode==="live"&&Array.isArray(data.overviewKpi)){
-    const rows=data.overviewKpi.filter(row=>
-      String(row.funnel||"").trim().toLocaleLowerCase("it-IT")===selectedFunnel.toLocaleLowerCase("it-IT") &&
-      (view==="Totale"||modelPerimeter(row.perimeter).toLocaleLowerCase("it-IT")===view.toLocaleLowerCase("it-IT"))
-    );
-    const target=rows.reduce((total,row)=>total+(Number(row.target)||0),0);
-    const acquired=rows.reduce((total,row)=>total+(Number(row.progress)||0)*(Number(row.target)||0),0);
-    conv=target?acquired/target*100:0;
-  }else if(data.mode==="demo"){
+  if(data.mode==="live"){
+    if(isApparati){
+      const won=Number(data.funnel[3]?.apparati)||0;
+      const target=Number(data.funnel[0]?.apparati)||0;
+      conv=target?won/target*100:0;
+    }else{
+      const won=Number(data.totals?.ClientiVinti)||0;
+      const target=Number(data.totals?.ClientiTarget)||0;
+      conv=target?won/target*100:0;
+    }
+  }else{
     const won=Number(data.funnel[3][state.funnel])||0;
     const target=Number(data.funnel[0][state.funnel])||0;
     conv=target?won/target*100:0;
@@ -393,7 +395,7 @@ qs("#connect-run").addEventListener("click",async()=>{
   const button=qs("#connect-run"), errorBox=qs("#connect-error");
   errorBox.hidden=true; errorBox.textContent="";
   button.disabled=true; button.textContent="Connessione in corso…";
-  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-funnel-semantic-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
+  try { if (!window.PowerBIConnector) await import("./powerbi.bundle.js?v=executive-overview-kpi-restored-20261120"); await window.PowerBIConnector.connectAndLoad(); qs("#connect-dialog").close(); showToast("Dati Power BI aggiornati"); }
   catch(error){ errorBox.textContent=error?.message||"Connessione Power BI non riuscita"; errorBox.hidden=false; }
   finally { button.disabled=false; button.textContent="Accedi e carica i dati"; }
 });

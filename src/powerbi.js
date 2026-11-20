@@ -147,14 +147,6 @@ VAR ProgressRows =
   )
 RETURN FILTER(ProgressRows, NOT ISBLANK([AvanzamentoDinamico]))`;
 
-const overviewKpiDax = `
-EVALUATE
-SUMMARIZECOLUMNS(
-  'Funnel'[Funnel],
-  'Clienti_Unificati'[Perimetro],
-  "AvanzamentoDinamico", [ClientiAvanzamento],
-  "TargetDinamico", [Target]
-)`;
 
 function configured() {
   return Boolean(settings.clientId && settings.datasetId && settings.workspaceId);
@@ -308,7 +300,7 @@ function aggregateDynamicRows(matrixRows, comparisonRows) {
   return { expected, comparison: [...series.values()] };
 }
 
-function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicRows = [], comparisonRows = [], overviewRows = [], overviewKpiRows = []) {
+function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicRows = [], comparisonRows = [], overviewRows = []) {
   const perimeters = perimeterRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const clients = clientRows.filter(row => !isExcluded(label(row, "Perimetro")));
   const totals = Object.fromEntries([
@@ -367,12 +359,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     ? overviewRows.map(row => ({ funnel: label(row, "Funnel"), view: label(row, "Perimetro"), category: label(row, "Categoria"), progress: num(row, "AvanzamentoDinamico") }))
         .filter(row => row.category && !(sameOverviewView(row.view, "Totale") && isExcluded(row.category)))
     : overviewProgressFromClients(clients);
-  const overviewKpi = overviewKpiRows.map(row => ({
-    funnel: label(row, "Funnel"),
-    perimeter: label(row, "Perimetro"),
-    progress: num(row, "AvanzamentoDinamico"),
-    target: num(row, "TargetDinamico")
-  })).filter(row => row.perimeter && !isExcluded(row.perimeter));
+
   const pipeline = [
     { label: "In corso", count: statusCount("In Progress"), apparatus: statusUnits("In Progress") },
     { label: "Vinte", count: statusCount("Won"), apparatus: statusUnits("Won") },
@@ -453,7 +440,7 @@ function shapeDashboard(perimeterRows, clientRows, offerRows, workRows, dynamicR
     priorityDistribution: buildPriorityDistribution(priorityDetails),
     ownerOptions,
     overviewProgress,
-    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows, dynamic: dynamicRows, comparison: comparisonRows, overview: overviewRows, overviewKpi: overviewKpiRows }
+    raw: { perimeters: perimeterRows, clients: clientRows, offers: offerRows, work: workRows, dynamic: dynamicRows, comparison: comparisonRows, overview: overviewRows }
   };
 }
 
@@ -527,7 +514,7 @@ function filterDashboard(base, selection = {}) {
     const p = label(row, "Perimetro");
     return !isExcluded(p) && perimetersInSelection.has(p) && selectedKeys.has(accountKey(row));
   });
-  return shapeDashboard(perimeterRows, clients, offers, work, dynamic, comparison, base.raw.overview || [], base.raw.overviewKpi || []);
+  return shapeDashboard(perimeterRows, clients, offers, work, dynamic, comparison, base.raw.overview || []);
 }
 
 async function connectAndLoad() {
@@ -539,8 +526,7 @@ async function connectAndLoad() {
     executeDax(worklistDax, accessToken),
     executeDax(expectedRowsDax, accessToken),
     executeDax(comparisonDax, accessToken),
-    executeDax(overviewProgressDax, accessToken),
-    executeDax(overviewKpiDax, accessToken)
+    executeDax(overviewProgressDax, accessToken)
   ]);
   const dashboard = shapeDashboard(...results);
   window.applyPowerBIData(dashboard);
